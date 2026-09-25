@@ -659,8 +659,8 @@ TODO (ETAPA 2/3): main()
 */
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-      printf("Uso: %s <arquivo_fonte>\n", argv[0]);
-      return 0;
+    printf("Uso: %s <arquivo_fonte>\n", argv[0]);
+    return 0;
   }
 
 
@@ -669,8 +669,8 @@ int main(int argc, char *argv[]) {
   
   
   if (arqFonte == NULL) {
-      printf("Erro ao abrir\n");
-      return 0;
+    printf("Erro ao abrir\n");
+    return 0;
   }
 
   fseek(arqFonte, 0, SEEK_END);
