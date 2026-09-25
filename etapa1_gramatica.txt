@@ -5,8 +5,7 @@ Linguagem: MiniVisualg (Visualg Simplificado)
 
 Integrantes do grupo:
   - TODO: Nome completo do integrante 1
-  - TODO: Nome completo do integrante 2 (se houver)
-  - TODO: Nome completo do integrante 3 (se houver)
+  - Pedro Henrique Carvalho Pereira - 10418861
 
 -----------------------------------------------------------------------------
 1. EXPRESSOES REGULARES
@@ -15,61 +14,51 @@ A partir dos exemplos do Anexo I, definir as expressoes regulares para cada
 categoria de token abaixo (preencher com a notacao formal escolhida pelo
 grupo, ex: ER classica ou notacao tipo regex):
 
-TODO: IDENTIFICADOR
-  (Ex: nome, idade, ehMaiorDeIdade, linha_decorativa)
+IDENTIFICADOR
+  [A-Za-z_][A-Za-z0-9_]*
+  
+NUMERO INTEIRO
+  [+-]?[0-9]+
 
-TODO: NUMERO INTEIRO
-  (Ex: 42, 10, -2 em "passo -2")
+NUMERO REAL
+  [+-]?[0-9]+\.[0-9]+
 
-TODO: NUMERO REAL
-  (Ex: 3.14, 1.60)
+CADEIA DE CARACTERES (string literal)
+  "[^"\n]*"
 
-TODO: CADEIA DE CARACTERES (string literal)
-  (Ex: "Ola, mundo!", "Florêncio")
+OPERADORES RELACIONAIS
+  = | <> | < | <= | > | >=
 
-TODO: OPERADORES RELACIONAIS
-  (=, <>, <, <=, >, >=)  -- ver secao OPERADORES RELACIONAIS do Anexo I
+OPERADORES ARITMETICOS
+  + | - | * | / | \\ | MOD
 
-TODO: OPERADORES ARITMETICOS
-  (+, -, *, /, \ , MOD)  -- ver secao OPERADORES ARITMETICOS do Anexo I
-  (\ = divisao inteira; MOD = resto da divisao, ex: "v MOD 2")
+OPERADORES LOGICOS
+  E | OU
 
-TODO: OPERADORES LOGICOS
-  (E, OU)  -- ver secao OPERADORES LOGICOS do Anexo I
-  TODO: confirmar se ha operador de negacao (NAO) usado no MiniVisualg
+OPERADOR DE ATRIBUICAO
+  <-
 
-TODO: OPERADOR DE ATRIBUICAO
-  (<-)  -- ver secao VARIAVEIS / "TextoELogico" do Anexo I
+PALAVRAS RESERVADAS (keywords)
+  algoritmo | var | inicio | fimalgoritmo | caractere | inteiro | real |
+  logico | vetor | de | escreva | escreval | leia | se | entao | senao |
+  fimse | para | ate | passo | faca | fimpara | enquanto | fimenquanto |
+  procedimento | fimprocedimento | funcao | fimfuncao | retorne |
+  verdadeiro | falso
 
-TODO: PALAVRAS RESERVADAS (keywords)
-  Levantar lista completa a partir de TODOS os exemplos do Anexo I, por
-  exemplo (conferir e completar):
-    algoritmo, var, inicio, fimalgoritmo, caractere, inteiro, real, logico,
-    vetor, de, escreva, escreval, leia, se, entao, senao, fimse, para, ate,
-    passo, faca, fimpara, enquanto, fimenquanto, procedimento,
-    fimprocedimento, funcao, fimfuncao, retorne, verdadeiro, falso, e, ou,
-    mod
+DELIMITADORES / PONTUACAO
+  ( | ) | [ | ] | , | : | ..
 
-TODO: DELIMITADORES / PONTUACAO
-  ( ) [ ] , : "  -- usados em declaracoes de vetor, parametros, listas de
-  escreva/escreval, strings etc.
-
-TODO: COMENTARIOS
-  ( // ate o fim da linha )  -- ver secao COMENTARIOS do Anexo I
-  Definir se o analisador lexico deve simplesmente descartar o conteudo
-  comentado (nao gerar token).
+COMENTARIOS
+  //.*
 
 -----------------------------------------------------------------------------
 2. GRAMATICA LIVRE DE CONTEXTO (GLC)
 -----------------------------------------------------------------------------
-Construir a GLC correspondente as expressoes regulares acima, cobrindo TODAS
-as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
-(preencher as producoes de cada um):
 
-TODO: <programa> ::=
-  "algoritmo" <string> "var" <declaracoes> "inicio" <bloco_comandos>
-  "fimalgoritmo"
-  (basear-se no ESQUELETO do Anexo I)
+
+<programa> ::= "algoritmo" <string> { <declaracao_rotina> }
+               [ "var" <declaracoes> ]
+               "inicio" <bloco_comandos> "fimalgoritmo"
 
 TODO: <declaracoes> ::=
   (pode ser vazio -- ver exemplo "PrimeiroPasso")
