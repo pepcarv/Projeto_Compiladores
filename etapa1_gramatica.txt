@@ -121,10 +121,28 @@ TODO: <declaracoes> ::=
 
 <chamada> ::= <id> [ "(" [ <lista_argumentos> ] ")" ]
 
+
+<lista_expressoes> ::= <expressao> { "," <expressao> }
+
+<lista_argumentos> ::= <expressao> { "," <expressao> }
+
 <expressao> ::= <termo_ou>
+
+<expressao_aritmetica> ::= <termo> { ( "+" | "-" ) <termo> }
+
+<termo> ::= <fator> { ( "*" | "/" | "\\" | "MOD" ) <fator> }
+
+<termo_ou> ::= <termo_e> { "OU" <termo_e> }
+
+<termo_e> ::= <expressao_relacional> { "E" <expressao_relacional> }
 
 <expressao_relacional> ::= <expressao_aritmetica>
                            [ <operador_relacional> <expressao_aritmetica> ]
+
+
+<operador_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
+
+
 
 <fator> ::= <inteiro>
           | <real>
@@ -133,6 +151,17 @@ TODO: <declaracoes> ::=
           | "falso"
           | <id> [ "[" <expressao> "]" ] [ "(" [ <lista_argumentos> ] ")" ]
           | "(" <expressao> ")"
+
+
+
+<id> ::= identificador
+<inteiro> ::= numero inteiro
+<real> ::= numero real
+<string> ::= cadeia de caracteres
+
+
+<retorno> ::= "retorne" <expressao>
+
 
 -----------------------------------------------------------------------------
 3. OBSERVACOES GERAIS
@@ -149,6 +178,3 @@ TODO: revisar se todas as construcoes dos exemplos do Anexo I estao cobertas:
   [ ] ESTRUTURA DE DADOS - VETORES (ListaNomes, MediaNotas)
   [ ] PROCEDIMENTOS (ProcedimentosSemParametros, ProcedimentosComParametros)
   [ ] FUNCOES (RotinasComRetorno, FuncaoEhPar)
-
-TODO: indentacao NAO sera considerada para o projeto (conforme OBS do
-descritivo) -- confirmar que a gramatica nao depende de indentacao.
