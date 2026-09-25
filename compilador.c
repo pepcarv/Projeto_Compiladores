@@ -126,21 +126,146 @@ void nextToken(void);
 // TODO: declarar protótipos das funcoes de descida recursiva, uma para cada
 // nao-terminal definido na gramatica da Etapa 1 (etapa1_gramatica.txt).
 // Exemplos esperados a partir do Anexo I (ajustar nomes conforme a GLC final):
-void analisar_programa(void);
-void analisar_declaracoes(void);
-void analisar_tipo(void);
+
+void consome(TokenNome tipo, const char *lexema) {
+  if (lookahead.type != tipo)
+    erroSintatico(lookahead.line, lookahead);
+
+  if (lexema != NULL) {
+    if (strcmp(symtab[lookahead.attribute.table_index], lexema) != 0) 
+      erroSintatico(lookahead.line, lookahead);
+  }
+
+  nextToken();
+}
+void analisar_programa(void) {
+  consome(TOKEN_KEYWORD, "algoritmo");
+  consome(TOKEN_STRING, NULL);
+  if (lookahead.type == TOKEN_KEYWORD && strcmp(symtab[lookahead.attribute.table_index], "var") == 0) {
+    consome(TOKEN_KEYWORD, "var");
+    analisar_declaracoes();
+  }
+  consome(TOKEN_KEYWORD, "inicio");
+  analisar_bloco_comandos();
+  consome(TOKEN_KEYWORD, "fimalgoritmo");
+}
+void analisar_declaracoes(void) {
+  while (lookahead.type == TOKEN_ID) {
+    consome(TOKEN_ID, NULL);
+    while (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], ",") == 0) {
+      consome(TOKEN_DELIM, ",");
+      consome(TOKEN_ID, NULL);
+    }
+    consome(TOKEN_DELIM, ":");
+    analisar_tipo();
+  }
+}
+void analisar_tipo(void) {
+  if (lookahead.type != TOKEN_KEYWORD) erroSintatico(lookahead.line, lookahead);
+
+  if (strcmp(symtab[lookahead.attribute.table_index], "caractere") == 0) {
+    consome(TOKEN_KEYWORD, "caractere");
+  } else if (strcmp(symtab[lookahead.attribute.table_index], "inteiro") == 0) {
+    consome(TOKEN_KEYWORD, "inteiro");
+  } else if (strcmp(symtab[lookahead.attribute.table_index], "real") == 0) {
+    consome(TOKEN_KEYWORD, "real");
+  } else if (strcmp(symtab[lookahead.attribute.table_index], "logico") == 0) {
+    consome(TOKEN_KEYWORD, "logico");
+  } else if (strcmp(symtab[lookahead.attribute.table_index], "vetor") == 0) {
+    consome(TOKEN_KEYWORD, "vetor");
+    consome(TOKEN_DELIM, "[");
+    consome(TOKEN_NUM_INT, NULL);
+    consome(TOKEN_DELIM, "..");
+    consome(TOKEN_NUM_INT, NULL);
+    consome(TOKEN_DELIM, "]");
+    consome(TOKEN_KEYWORD, "de");
+    analisar_tipo();
+  } else {
+    erroSintatico(lookahead.line, lookahead);
+  }
+}
+void analisar_bloco_comandos(void) {
+  if (lookahead.type != TOKEN_KEYWORD && lookahead.type != TOKEN_ID) erroSintatico(lookahead.line, lookahead);
+
+  while (strcmp(symtab[lookahead.attribute.table_index], "fimalgoritmo") != 0 && 
+        strcmp(symtab[lookahead.attribute.table_index], "senao") != 0 &&
+        strcmp(symtab[lookahead.attribute.table_index], "fimse") != 0 &&
+        strcmp(symtab[lookahead.attribute.table_index], "fimpara") != 0 &&
+        strcmp(symtab[lookahead.attribute.table_index], "fimenquanto") != 0 &&
+        strcmp(symtab[lookahead.attribute.table_index], "fimprocedimento") != 0 &&
+        strcmp(symtab[lookahead.attribute.table_index], "fimfuncao") != 0) {
+    analisar_comando();
+  }
+  
+}
+void analisar_comando(void) {
+  if (lookahead.type == TOKEN_KEYWORD) {
+    if (strcmp(symtab[lookahead.attribute.table_index], "escreva") == 0 || strcmp(symtab[lookahead.attribute.table_index], "escreval") == 0) {
+      analisar_escrita();
+    } else if (strcmp(symtab[lookahead.attribute.table_index], "leia") == 0) {
+      analisar_leitura();
+    } else if (strcmp(symtab[lookahead.attribute.table_index], "se") == 0) {
+      analisar_condicional();
+    } else if (strcmp(symtab[lookahead.attribute.table_index], "para") == 0) {
+      analisar_repeticao_para();
+    } else if (strcmp(symtab[lookahead.attribute.table_index], "enquanto") == 0) {
+      analisar_repeticao_enquanto();
+    }
+  } else if (lookahead.type == TOKEN_ID) {
+    consome(TOKEN_ID, NULL);
+    if (lookahead.type == TOKEN_ASSIGN) {
+      consome(TOKEN_ASSIGN, NULL);
+      analisar_expressao();
+    } else if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "(") == 0) {
+      consome(TOKEN_DELIM, "(");
+      analisar_lista_argumentos();
+      consome(TOKEN_DELIM, ")");
+    } else if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "[") == 0) {
+      consome(TOKEN_DELIM, "[");
+      analisar_expressao();
+      consome(TOKEN_DELIM, "]");
+      consome(TOKEN_ASSIGN, NULL);
+      analisar_expressao();
+    }
+  }
+}
+void analisar_leitura(void) {
+    consome(TOKEN_KEYWORD, "leia");
+    consome(TOKEN_DELIM, "(");
+    consome(TOKEN_ID, NULL);
+    if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "[") == 0) {
+      consome(TOKEN_DELIM, "[");
+      analisar_expressao();
+      consome(TOKEN_DELIM, "]");
+    }
+    consome(TOKEN_DELIM, ")");
+}
+void analisar_escrita(void) {
+    if (lookahead.type == TOKEN_KEYWORD && strcmp(symtab[lookahead.attribute.table_index], "escreva") == 0) {
+      consome(TOKEN_KEYWORD, "escreva");
+    } else if (lookahead.type == TOKEN_KEYWORD && strcmp(symtab[lookahead.attribute.table_index], "escreval") == 0) {
+      consome(TOKEN_KEYWORD, "escreval");
+    } else {
+      erroSintatico(lookahead.line, lookahead);
+    }
+    consome(TOKEN_DELIM, "(");
+    analisar_lista_argumentos();
+    consome(TOKEN_DELIM, ")");
+}
+void analisar_lista_argumentos(void) {
+    analisar_expressao();
+    while (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], ",") == 0) {
+      consome(TOKEN_DELIM, ",");
+      analisar_expressao();
+    }
+}
 void analisar_subrotinas(void);
 void analisar_declaracao_procedimento(void);
 void analisar_declaracao_funcao(void);
 void analisar_lista_parametros(void);
-void analisar_bloco_comandos(void);
-void analisar_comando(void);
-void analisar_leitura(void);
-void analisar_escrita(void);
 void analisar_condicional(void);
 void analisar_repeticao_para(void);
 void analisar_repeticao_enquanto(void);
-void analisar_lista_argumentos(void);
 void analisar_expressao(void);
 void analisar_expr_logica(void);
 void analisar_expr_relacional(void);
