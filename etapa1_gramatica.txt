@@ -57,80 +57,82 @@ COMENTARIOS
 
 
 <programa> ::= "algoritmo" <string> { <declaracao_rotina> }
-               [ "var" <declaracoes> ]
-               "inicio" <bloco_comandos> "fimalgoritmo"
+                [ "var" <declaracoes> ]
+                "inicio" <bloco_comandos> "fimalgoritmo"
 
 TODO: <declaracoes> ::=
   (pode ser vazio -- ver exemplo "PrimeiroPasso")
   lista de: <lista_identificadores> ":" <tipo>
   (ver secao VARIAVEIS: "nome, sobrenome: caractere")
 
-TODO: <tipo> ::=
-  "caractere" | "inteiro" | "real" | "logico"
-  | "vetor" "[" <numero> ".." <numero> "]" "de" <tipo>
-  (ver secao ESTRUTURA DE DADOS - VETORES)
 
-TODO: <bloco_comandos> ::= { <comando> }
 
-TODO: <comando> ::=
-  <atribuicao>
-  | <leitura>
-  | <escrita>
-  | <condicional>
-  | <repeticao_para>
-  | <repeticao_enquanto>
-  | <retorno>
-  | <chamada>
 
-TODO: <atribuicao> ::= <id> [ "[" <expressao> "]" ] "<-" <expressao>
-  (ver "TextoELogico": nome <- "Florêncio"; "ListaNomes": nomes[1] <- "Ana")
 
-TODO: <leitura> ::= "leia" "(" <id> [ "[" <expressao> "]" ] ")"
+<tipo> ::= "caractere"
+          | "inteiro"
+          | "real"
+          | "logico"
+          | "vetor" "[" <inteiro> ".." <inteiro> "]" "de" <tipo>
 
-TODO: <escrita> ::= ( "escreva" | "escreval" ) "(" <lista_expressoes> ")"
-  (ver secao COMENTARIOS: diferenca entre escreva/escreval)
+<bloco_comandos> ::= { <comando> }
 
-TODO: <condicional> ::=
-  "se" "(" <expressao_relacional> ")" "entao" <bloco_comandos>
-  [ "senao" <bloco_comandos> ] "fimse"
-  (ver ESTRUTURA DE CONTROLE: "VerificaChuva", "MaioridadeAninhado" -- incluir
-  suporte a aninhamento)
+<comando> ::= <atribuicao>
+            | <leitura>
+            | <escrita>
+            | <condicional>
+            | <repeticao_para>
+            | <repeticao_enquanto>
+            | <retorno>
+            | <chamada>
 
-TODO: <repeticao_para> ::=
-  "para" <id> "de" <expressao> "ate" <expressao> [ "passo" <expressao> ]
-  "faca" <bloco_comandos> "fimpara"
-  (ver REPETICAO: "ContagemSimples", "ContagemRegressiva" -- passo negativo)
+<atribuicao> ::= <id> [ "[" <expressao> "]" ] "<-" <expressao>
 
-TODO: <repeticao_enquanto> ::=
-  "enquanto" "(" <expressao_relacional> ")" "faca" <bloco_comandos>
-  "fimenquanto"
-  (ver REPETICAO: "ContadorManual")
 
-TODO: <declaracao_procedimento> ::=
-  "procedimento" <id> [ "(" <lista_parametros> ")" ] <bloco_comandos>
-  "fimprocedimento"
-  (ver PROCEDIMENTOS: atencao a regra "procedimento sem parametros NAO deve
-  ter parenteses, nem na declaracao nem na chamada")
+<leitura> ::= "leia" "(" <id> [ "[" <expressao> "]" ] ")"
 
-TODO: <declaracao_funcao> ::=
-  "funcao" <id> "(" <lista_parametros> ")" ":" <tipo> <bloco_comandos>
-  "fimfuncao"
-  (ver FUNCOES: "somar", "eh_par" -- incluir <retorno> ::= "retorne" <expressao>)
+<escrita> ::= ( "escreva" | "escreval" ) "(" <lista_expressoes> ")"
 
-TODO: <chamada> ::= <id> [ "(" <lista_argumentos> ")" ]
 
-TODO: <expressao> ::= ... (hierarquia completa: logica -> relacional ->
-  aritmetica -> termo -> fator, incluindo precedencia de operadores)
 
-TODO: <expressao_relacional> ::= <expressao> <op_relacional> <expressao>
 
-TODO: <fator> ::=
-  <numero_inteiro> | <numero_real> | <string> | "verdadeiro" | "falso"
-  | <id> [ "[" <expressao> "]" ] | <chamada_funcao> | "(" <expressao> ")"
+<condicional> ::= "se" "(" <expressao> ")" "entao"
+                  <bloco_comandos>
+                  [ "senao" <bloco_comandos> ]
+                  "fimse"
 
-TODO: revisar toda a GLC quanto a ambiguidade e recursao a esquerda (a
-analise sintatica da Etapa 3 sera descendente/recursiva, portanto a
-gramatica final NAO pode conter recursao a esquerda).
+
+<repeticao_para> ::= "para" <id> "de" <expressao> "ate" <expressao>
+                      [ "passo" <expressao> ]
+                      "faca" <bloco_comandos> "fimpara"
+
+<repeticao_enquanto> ::= "enquanto" "(" <expressao> ")" "faca"
+                          <bloco_comandos> "fimenquanto"
+
+<declaracao_procedimento> ::= "procedimento" <id>
+                              [ "(" <lista_parametros> ")" ]
+                              [ "var" <declaracoes> ]
+                              "inicio" <bloco_comandos> "fimprocedimento"
+
+<declaracao_funcao> ::= "funcao" <id> "(" [ <lista_parametros> ] ")"
+                        ":" <tipo>
+                        [ "var" <declaracoes> ]
+                        "inicio" <bloco_comandos> "fimfuncao"
+
+<chamada> ::= <id> [ "(" [ <lista_argumentos> ] ")" ]
+
+<expressao> ::= <termo_ou>
+
+<expressao_relacional> ::= <expressao_aritmetica>
+                           [ <operador_relacional> <expressao_aritmetica> ]
+
+<fator> ::= <inteiro>
+          | <real>
+          | <string>
+          | "verdadeiro"
+          | "falso"
+          | <id> [ "[" <expressao> "]" ] [ "(" [ <lista_argumentos> ] ")" ]
+          | "(" <expressao> ")"
 
 -----------------------------------------------------------------------------
 3. OBSERVACOES GERAIS
