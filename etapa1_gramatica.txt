@@ -1,0 +1,163 @@
+=============================================================================
+COMPILADORES - PROJETO - ETAPA 1: Gramatica Livre de Contexto
+Linguagem: MiniVisualg (Visualg Simplificado)
+=============================================================================
+
+Integrantes do grupo:
+  - TODO: Nome completo do integrante 1
+  - TODO: Nome completo do integrante 2 (se houver)
+  - TODO: Nome completo do integrante 3 (se houver)
+
+-----------------------------------------------------------------------------
+1. EXPRESSOES REGULARES
+-----------------------------------------------------------------------------
+A partir dos exemplos do Anexo I, definir as expressoes regulares para cada
+categoria de token abaixo (preencher com a notacao formal escolhida pelo
+grupo, ex: ER classica ou notacao tipo regex):
+
+TODO: IDENTIFICADOR
+  (Ex: nome, idade, ehMaiorDeIdade, linha_decorativa)
+
+TODO: NUMERO INTEIRO
+  (Ex: 42, 10, -2 em "passo -2")
+
+TODO: NUMERO REAL
+  (Ex: 3.14, 1.60)
+
+TODO: CADEIA DE CARACTERES (string literal)
+  (Ex: "Ola, mundo!", "Florêncio")
+
+TODO: OPERADORES RELACIONAIS
+  (=, <>, <, <=, >, >=)  -- ver secao OPERADORES RELACIONAIS do Anexo I
+
+TODO: OPERADORES ARITMETICOS
+  (+, -, *, /, \ , MOD)  -- ver secao OPERADORES ARITMETICOS do Anexo I
+  (\ = divisao inteira; MOD = resto da divisao, ex: "v MOD 2")
+
+TODO: OPERADORES LOGICOS
+  (E, OU)  -- ver secao OPERADORES LOGICOS do Anexo I
+  TODO: confirmar se ha operador de negacao (NAO) usado no MiniVisualg
+
+TODO: OPERADOR DE ATRIBUICAO
+  (<-)  -- ver secao VARIAVEIS / "TextoELogico" do Anexo I
+
+TODO: PALAVRAS RESERVADAS (keywords)
+  Levantar lista completa a partir de TODOS os exemplos do Anexo I, por
+  exemplo (conferir e completar):
+    algoritmo, var, inicio, fimalgoritmo, caractere, inteiro, real, logico,
+    vetor, de, escreva, escreval, leia, se, entao, senao, fimse, para, ate,
+    passo, faca, fimpara, enquanto, fimenquanto, procedimento,
+    fimprocedimento, funcao, fimfuncao, retorne, verdadeiro, falso, e, ou,
+    mod
+
+TODO: DELIMITADORES / PONTUACAO
+  ( ) [ ] , : "  -- usados em declaracoes de vetor, parametros, listas de
+  escreva/escreval, strings etc.
+
+TODO: COMENTARIOS
+  ( // ate o fim da linha )  -- ver secao COMENTARIOS do Anexo I
+  Definir se o analisador lexico deve simplesmente descartar o conteudo
+  comentado (nao gerar token).
+
+-----------------------------------------------------------------------------
+2. GRAMATICA LIVRE DE CONTEXTO (GLC)
+-----------------------------------------------------------------------------
+Construir a GLC correspondente as expressoes regulares acima, cobrindo TODAS
+as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
+(preencher as producoes de cada um):
+
+TODO: <programa> ::=
+  "algoritmo" <string> "var" <declaracoes> "inicio" <bloco_comandos>
+  "fimalgoritmo"
+  (basear-se no ESQUELETO do Anexo I)
+
+TODO: <declaracoes> ::=
+  (pode ser vazio -- ver exemplo "PrimeiroPasso")
+  lista de: <lista_identificadores> ":" <tipo>
+  (ver secao VARIAVEIS: "nome, sobrenome: caractere")
+
+TODO: <tipo> ::=
+  "caractere" | "inteiro" | "real" | "logico"
+  | "vetor" "[" <numero> ".." <numero> "]" "de" <tipo>
+  (ver secao ESTRUTURA DE DADOS - VETORES)
+
+TODO: <bloco_comandos> ::= { <comando> }
+
+TODO: <comando> ::=
+  <atribuicao>
+  | <leitura>
+  | <escrita>
+  | <condicional>
+  | <repeticao_para>
+  | <repeticao_enquanto>
+  | <retorno>
+  | <chamada>
+
+TODO: <atribuicao> ::= <id> [ "[" <expressao> "]" ] "<-" <expressao>
+  (ver "TextoELogico": nome <- "Florêncio"; "ListaNomes": nomes[1] <- "Ana")
+
+TODO: <leitura> ::= "leia" "(" <id> [ "[" <expressao> "]" ] ")"
+
+TODO: <escrita> ::= ( "escreva" | "escreval" ) "(" <lista_expressoes> ")"
+  (ver secao COMENTARIOS: diferenca entre escreva/escreval)
+
+TODO: <condicional> ::=
+  "se" "(" <expressao_relacional> ")" "entao" <bloco_comandos>
+  [ "senao" <bloco_comandos> ] "fimse"
+  (ver ESTRUTURA DE CONTROLE: "VerificaChuva", "MaioridadeAninhado" -- incluir
+  suporte a aninhamento)
+
+TODO: <repeticao_para> ::=
+  "para" <id> "de" <expressao> "ate" <expressao> [ "passo" <expressao> ]
+  "faca" <bloco_comandos> "fimpara"
+  (ver REPETICAO: "ContagemSimples", "ContagemRegressiva" -- passo negativo)
+
+TODO: <repeticao_enquanto> ::=
+  "enquanto" "(" <expressao_relacional> ")" "faca" <bloco_comandos>
+  "fimenquanto"
+  (ver REPETICAO: "ContadorManual")
+
+TODO: <declaracao_procedimento> ::=
+  "procedimento" <id> [ "(" <lista_parametros> ")" ] <bloco_comandos>
+  "fimprocedimento"
+  (ver PROCEDIMENTOS: atencao a regra "procedimento sem parametros NAO deve
+  ter parenteses, nem na declaracao nem na chamada")
+
+TODO: <declaracao_funcao> ::=
+  "funcao" <id> "(" <lista_parametros> ")" ":" <tipo> <bloco_comandos>
+  "fimfuncao"
+  (ver FUNCOES: "somar", "eh_par" -- incluir <retorno> ::= "retorne" <expressao>)
+
+TODO: <chamada> ::= <id> [ "(" <lista_argumentos> ")" ]
+
+TODO: <expressao> ::= ... (hierarquia completa: logica -> relacional ->
+  aritmetica -> termo -> fator, incluindo precedencia de operadores)
+
+TODO: <expressao_relacional> ::= <expressao> <op_relacional> <expressao>
+
+TODO: <fator> ::=
+  <numero_inteiro> | <numero_real> | <string> | "verdadeiro" | "falso"
+  | <id> [ "[" <expressao> "]" ] | <chamada_funcao> | "(" <expressao> ")"
+
+TODO: revisar toda a GLC quanto a ambiguidade e recursao a esquerda (a
+analise sintatica da Etapa 3 sera descendente/recursiva, portanto a
+gramatica final NAO pode conter recursao a esquerda).
+
+-----------------------------------------------------------------------------
+3. OBSERVACOES GERAIS
+-----------------------------------------------------------------------------
+TODO: revisar se todas as construcoes dos exemplos do Anexo I estao cobertas:
+  [ ] ESQUELETO (PrimeiroPasso)
+  [ ] COMENTARIOS (MensagemDupla, nome_do_algoritmo)
+  [ ] VARIAVEIS (BoasVindas, CadastroSimples, TextoELogico, TesteDeLogica)
+  [ ] OPERADORES ARITMETICOS (CalculadoraBasica)
+  [ ] OPERADORES RELACIONAIS (ComparaTextosENumeros)
+  [ ] OPERADORES LOGICOS (ParqueDeDiversoes)
+  [ ] ESTRUTURA DE CONTROLE (VerificaChuva, MaioridadeAninhado)
+  [ ] REPETICAO (ContagemSimples, ContagemRegressiva, ContadorManual)
+  [ ] ESTRUTURA DE DADOS - VETORES (ListaNomes, MediaNotas)
+  [ ] PROCEDIMENTOS (ProcedimentosSemParametros, ProcedimentosComParametros)
+  [ ] FUNCOES (RotinasComRetorno, FuncaoEhPar)
+
+TODO: indentacao NAO sera considerada para o projeto (conforme OBS do
+descritivo) -- confirmar que a gramatica nao depende de indentacao.
