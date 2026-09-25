@@ -4,7 +4,7 @@ Linguagem: MiniVisualg (Visualg Simplificado)
 =============================================================================
 
 Integrantes do grupo:
-  - TODO: Nome completo do integrante 1
+  - TODO: Mateus Ribeiro Cerqueira - 10443901
   - Pedro Henrique Carvalho Pereira - 10418861
 
 -----------------------------------------------------------------------------
@@ -54,26 +54,27 @@ COMENTARIOS
 -----------------------------------------------------------------------------
 2. GRAMATICA LIVRE DE CONTEXTO (GLC)
 -----------------------------------------------------------------------------
+Construir a GLC correspondente as expressoes regulares acima, cobrindo TODAS
+as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
+(preencher as producoes de cada um):
 
-
-<programa> ::= "algoritmo" <string> { <declaracao_rotina> }
+<programa> ::= "algoritmo" <cadeia>
+                { <declaracao_procedimento> | <declaracao_funcao> }
                 [ "var" <declaracoes> ]
-                "inicio" <bloco_comandos> "fimalgoritmo"
+                "inicio" <lista_comandos>
+                "fimalgoritmo"
 
-TODO: <declaracoes> ::=
-  (pode ser vazio -- ver exemplo "PrimeiroPasso")
-  lista de: <lista_identificadores> ":" <tipo>
-  (ver secao VARIAVEIS: "nome, sobrenome: caractere")
+<declaracoes> ::= <declaracao> { <declaracao> }
+<declaracao> ::= <lista_identificadores> ":" <tipo>
+<lista_identificadores> ::= <identificador>
+                            { "," <identificador> }
 
-
-
-
-
-<tipo> ::= "caractere"
-          | "inteiro"
-          | "real"
-          | "logico"
-          | "vetor" "[" <inteiro> ".." <inteiro> "]" "de" <tipo>
+<tipo> ::= <tipo_tipo>
+         | "vetor" "[" <inteiro> ".." <inteiro> "]" "de" <tipo_tipo>
+<tipo_tipo> ::= "caractere"
+                | "inteiro"
+                | "real"
+                | "logico"
 
 <bloco_comandos> ::= { <comando> }
 
@@ -88,80 +89,71 @@ TODO: <declaracoes> ::=
 
 <atribuicao> ::= <id> [ "[" <expressao> "]" ] "<-" <expressao>
 
-
 <leitura> ::= "leia" "(" <id> [ "[" <expressao> "]" ] ")"
 
 <escrita> ::= ( "escreva" | "escreval" ) "(" <lista_expressoes> ")"
+<lista_expressoes> ::= <expressao> { "," <expressao> }
 
-
-
-
-<condicional> ::= "se" "(" <expressao> ")" "entao"
+<condicional> ::= "se" "(" <expressao_relacional> ")" "entao"
                   <bloco_comandos>
                   [ "senao" <bloco_comandos> ]
                   "fimse"
 
-
-<repeticao_para> ::= "para" <id> "de" <expressao> "ate" <expressao>
+<repeticao_para> ::= "para" <id> "de" <expressao>
+                      "ate" <expressao>
                       [ "passo" <expressao> ]
                       "faca" <bloco_comandos> "fimpara"
 
-<repeticao_enquanto> ::= "enquanto" "(" <expressao> ")" "faca"
-                          <bloco_comandos> "fimenquanto"
+<repeticao_enquanto> ::= "enquanto" "(" <expressao_relacional> ")"
+                          "faca" <bloco_comandos> "fimenquanto"
 
 <declaracao_procedimento> ::= "procedimento" <id>
-                              [ "(" <lista_parametros> ")" ]
-                              [ "var" <declaracoes> ]
-                              "inicio" <bloco_comandos> "fimprocedimento"
+                              "inicio" <bloco_comandos>
+                              "fimprocedimento"
+                            | "procedimento" <id>
+                              "(" <lista_parametros> ")"
+                              "inicio" <bloco_comandos>
+                              "fimprocedimento"
+<lista_parametros> ::= <parametro> { "," <parametro> }
+<parametro> ::= <id> ":" <tipo_tipo>
 
-<declaracao_funcao> ::= "funcao" <id> "(" [ <lista_parametros> ] ")"
-                        ":" <tipo>
-                        [ "var" <declaracoes> ]
-                        "inicio" <bloco_comandos> "fimfuncao"
-
-<chamada> ::= <id> [ "(" [ <lista_argumentos> ] ")" ]
-
-
-<lista_expressoes> ::= <expressao> { "," <expressao> }
-
-<lista_argumentos> ::= <expressao> { "," <expressao> }
-
-<expressao> ::= <termo_ou>
-
-<expressao_aritmetica> ::= <termo> { ( "+" | "-" ) <termo> }
-
-<termo> ::= <fator> { ( "*" | "/" | "\\" | "MOD" ) <fator> }
-
-<termo_ou> ::= <termo_e> { "OU" <termo_e> }
-
-<termo_e> ::= <expressao_relacional> { "E" <expressao_relacional> }
-
-<expressao_relacional> ::= <expressao_aritmetica>
-                           [ <operador_relacional> <expressao_aritmetica> ]
-
-
-<operador_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
-
-
-
-<fator> ::= <inteiro>
-          | <real>
-          | <string>
-          | "verdadeiro"
-          | "falso"
-          | <id> [ "[" <expressao> "]" ] [ "(" [ <lista_argumentos> ] ")" ]
-          | "(" <expressao> ")"
-
-
-
-<id> ::= identificador
-<inteiro> ::= numero inteiro
-<real> ::= numero real
-<string> ::= cadeia de caracteres
-
+<declaracao_funcao> ::= "funcao" <id>
+                        "(" <lista_parametros> ")"
+                        ":" <tipo_tipo>
+                        "inicio" <bloco_comandos>
+                        "fimfuncao"
 
 <retorno> ::= "retorne" <expressao>
 
+<chamada> ::= <id>
+            | <id> "(" <lista_argumentos> ")"
+<lista_argumentos> ::= <expressao> { "," <expressao> }
+
+
+<expressao> ::= <expressao_relacional> { <operador_logico> <expressao_relacional> }
+
+<expressao_relacional> ::= <expressao_aritmetica>
+                          [ <operador_relacional> <expressao_aritmetica> ]
+<operador_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
+<operador_logico> ::= "E" | "OU"
+<expressao_aritmetica> ::= <termo> { ( "+" | "-" ) <termo> }
+<termo> ::= <fator> { ( "*" | "/" | "\\" | "MOD" ) <fator> }
+
+
+
+<fator> ::= <numero_inteiro>
+          | <numero_real>
+          | <string>
+          | "verdadeiro"
+          | "falso"
+          | <id> [ "[" <expressao> "]" ]
+          | <chamada_funcao>
+          | "(" <expressao> ")"
+<chamada_funcao> ::= <id> "(" <lista_argumentos> ")"
+<id> ::= token identificador
+<numero_inteiro> ::= token numero inteiro
+<numero_real> ::= token numero real
+<string> ::= token cadeia de caracteres
 
 -----------------------------------------------------------------------------
 3. OBSERVACOES GERAIS
@@ -178,3 +170,6 @@ TODO: revisar se todas as construcoes dos exemplos do Anexo I estao cobertas:
   [ ] ESTRUTURA DE DADOS - VETORES (ListaNomes, MediaNotas)
   [ ] PROCEDIMENTOS (ProcedimentosSemParametros, ProcedimentosComParametros)
   [ ] FUNCOES (RotinasComRetorno, FuncaoEhPar)
+
+TODO: indentacao NAO sera considerada para o projeto (conforme OBS do
+descritivo) -- confirmar que a gramatica nao depende de indentacao.
