@@ -4,7 +4,7 @@ Linguagem: MiniVisualg (Visualg Simplificado)
 =============================================================================
 
 Integrantes do grupo:
-  - TODO: Mateus Ribeiro Cerqueira - 10443901
+  - Mateus Ribeiro Cerqueira - 10443901
   - Pedro Henrique Carvalho Pereira - 10418861
 
 -----------------------------------------------------------------------------
@@ -15,13 +15,13 @@ categoria de token abaixo (preencher com a notacao formal escolhida pelo
 grupo, ex: ER classica ou notacao tipo regex):
 
 IDENTIFICADOR
-  [A-Za-z_][A-Za-z0-9_]*
+  [a-zA-Z_][a-zA-Z0-9_]*
   
 NUMERO INTEIRO
-  [+-]?[0-9]+
+  [0-9]+
 
 NUMERO REAL
-  [+-]?[0-9]+\.[0-9]+
+  [0-9]+\.[0-9]+
 
 CADEIA DE CARACTERES (string literal)
   "[^"\n]*"
@@ -30,7 +30,7 @@ OPERADORES RELACIONAIS
   = | <> | < | <= | > | >=
 
 OPERADORES ARITMETICOS
-  + | - | * | / | \\ | MOD
+  \+  |  \-  |  \*  |  /  |  \\  |  mod  |  MOD
 
 OPERADORES LOGICOS
   E | OU
@@ -39,17 +39,17 @@ OPERADOR DE ATRIBUICAO
   <-
 
 PALAVRAS RESERVADAS (keywords)
-  algoritmo | var | inicio | fimalgoritmo | caractere | inteiro | real |
-  logico | vetor | de | escreva | escreval | leia | se | entao | senao |
-  fimse | para | ate | passo | faca | fimpara | enquanto | fimenquanto |
-  procedimento | fimprocedimento | funcao | fimfuncao | retorne |
-  verdadeiro | falso
+  algoritmo, var, inicio, fimalgoritmo, caractere, inteiro, real, logico,
+  vetor, de, escreva, escreval, leia, se, entao, senao, fimse, para, ate,
+  passo, faca, fimpara, enquanto, fimenquanto, procedimento,
+  fimprocedimento, funcao, fimfuncao, retorne, verdadeiro, falso, E, OU,
+  mod, MOD
 
 DELIMITADORES / PONTUACAO
-  ( | ) | [ | ] | , | : | ..
+  (  )  [  ]  ,  :  ..
 
 COMENTARIOS
-  //.*
+  //[^\n]*
 
 -----------------------------------------------------------------------------
 2. GRAMATICA LIVRE DE CONTEXTO (GLC)
@@ -58,102 +58,92 @@ Construir a GLC correspondente as expressoes regulares acima, cobrindo TODAS
 as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
 (preencher as producoes de cada um):
 
-<programa> ::= "algoritmo" <cadeia>
-                { <declaracao_procedimento> | <declaracao_funcao> }
-                [ "var" <declaracoes> ]
-                "inicio" <lista_comandos>
-                "fimalgoritmo"
+<programa> ::=
+  "algoritmo" <string> "var" <declaracoes> <subrotinas>
+  "inicio" <bloco_comandos> "fimalgoritmo"
 
-<declaracoes> ::= <declaracao> { <declaracao> }
-<declaracao> ::= <lista_identificadores> ":" <tipo>
-<lista_identificadores> ::= <identificador>
-                            { "," <identificador> }
+<declaracoes> ::=
+  { <lista_identificadores> ":" <tipo> }
+  (pode ser vazio -- ver exemplo "PrimeiroPasso")
 
-<tipo> ::= <tipo_tipo>
-         | "vetor" "[" <inteiro> ".." <inteiro> "]" "de" <tipo_tipo>
-<tipo_tipo> ::= "caractere"
-                | "inteiro"
-                | "real"
-                | "logico"
+<lista_identificadores> ::= ID { "," ID }
+
+<tipo> ::=
+  "caractere" | "inteiro" | "real" | "logico"
+  | "vetor" "[" NUM_INT ".." NUM_INT "]" "de" <tipo>
+
+<subrotinas> ::= { <declaracao_procedimento> | <declaracao_funcao> }
+
+<declaracao_procedimento> ::=
+  "procedimento" ID [ "(" <lista_parametros> ")" ] [ "var" <declaracoes> ]
+  "inicio" <bloco_comandos> "fimprocedimento"
+  (procedimento sem parametros NAO usa parenteses, nem na declaracao nem
+  na chamada)
+
+<declaracao_funcao> ::=
+  "funcao" ID "(" <lista_parametros> ")" ":" <tipo> [ "var" <declaracoes> ]
+  "inicio" <bloco_comandos> "fimfuncao"
+
+<lista_parametros> ::= [ ID ":" <tipo> { "," ID ":" <tipo> } ]
 
 <bloco_comandos> ::= { <comando> }
 
-<comando> ::= <atribuicao>
-            | <leitura>
-            | <escrita>
-            | <condicional>
-            | <repeticao_para>
-            | <repeticao_enquanto>
-            | <retorno>
-            | <chamada>
+<comando> ::=
+  <atribuicao_ou_chamada>
+  | <leitura>
+  | <escrita>
+  | <condicional>
+  | <repeticao_para>
+  | <repeticao_enquanto>
+  | <retorno>
 
-<atribuicao> ::= <id> [ "[" <expressao> "]" ] "<-" <expressao>
+<atribuicao_ou_chamada> ::=
+  ID "[" <expressao> "]" "<-" <expressao>
+  | ID "<-" <expressao>
+  | ID "(" <lista_argumentos> ")"
+  | ID
+  (as tres ultimas formas cobrem: chamada de procedimento/funcao com
+  argumentos e chamada de procedimento sem parametros, ex: linha_decorativa)
 
-<leitura> ::= "leia" "(" <id> [ "[" <expressao> "]" ] ")"
+<leitura> ::= "leia" "(" ID [ "[" <expressao> "]" ] ")"
 
-<escrita> ::= ( "escreva" | "escreval" ) "(" <lista_expressoes> ")"
-<lista_expressoes> ::= <expressao> { "," <expressao> }
+<escrita> ::=
+  ( "escreva" | "escreval" ) "(" <expressao> { "," <expressao> } ")"
 
-<condicional> ::= "se" "(" <expressao_relacional> ")" "entao"
-                  <bloco_comandos>
-                  [ "senao" <bloco_comandos> ]
-                  "fimse"
+<condicional> ::=
+  "se" "(" <expressao> ")" "entao" <bloco_comandos>
+  [ "senao" <bloco_comandos> ] "fimse"
 
-<repeticao_para> ::= "para" <id> "de" <expressao>
-                      "ate" <expressao>
-                      [ "passo" <expressao> ]
-                      "faca" <bloco_comandos> "fimpara"
+<repeticao_para> ::=
+  "para" ID "de" <expressao> "ate" <expressao> [ "passo" <expressao> ]
+  "faca" <bloco_comandos> "fimpara"
 
-<repeticao_enquanto> ::= "enquanto" "(" <expressao_relacional> ")"
-                          "faca" <bloco_comandos> "fimenquanto"
-
-<declaracao_procedimento> ::= "procedimento" <id>
-                              "inicio" <bloco_comandos>
-                              "fimprocedimento"
-                            | "procedimento" <id>
-                              "(" <lista_parametros> ")"
-                              "inicio" <bloco_comandos>
-                              "fimprocedimento"
-<lista_parametros> ::= <parametro> { "," <parametro> }
-<parametro> ::= <id> ":" <tipo_tipo>
-
-<declaracao_funcao> ::= "funcao" <id>
-                        "(" <lista_parametros> ")"
-                        ":" <tipo_tipo>
-                        "inicio" <bloco_comandos>
-                        "fimfuncao"
+<repeticao_enquanto> ::=
+  "enquanto" "(" <expressao> ")" "faca" <bloco_comandos> "fimenquanto"
 
 <retorno> ::= "retorne" <expressao>
 
-<chamada> ::= <id>
-            | <id> "(" <lista_argumentos> ")"
-<lista_argumentos> ::= <expressao> { "," <expressao> }
+<lista_argumentos> ::= [ <expressao> { "," <expressao> } ]
 
+<expressao> ::= <expr_logica>
 
-<expressao> ::= <expressao_relacional> { <operador_logico> <expressao_relacional> }
+<expr_logica> ::= <expr_relacional> { ( "E" | "OU" ) <expr_relacional> }
 
-<expressao_relacional> ::= <expressao_aritmetica>
-                          [ <operador_relacional> <expressao_aritmetica> ]
-<operador_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
-<operador_logico> ::= "E" | "OU"
-<expressao_aritmetica> ::= <termo> { ( "+" | "-" ) <termo> }
-<termo> ::= <fator> { ( "*" | "/" | "\\" | "MOD" ) <fator> }
+<expr_relacional> ::=
+  <expr_aritmetica> { <op_relacional> <expr_aritmetica> }
 
+<op_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
 
+<expr_aritmetica> ::= <termo> { ( "+" | "-" ) <termo> }
 
-<fator> ::= <numero_inteiro>
-          | <numero_real>
-          | <string>
-          | "verdadeiro"
-          | "falso"
-          | <id> [ "[" <expressao> "]" ]
-          | <chamada_funcao>
-          | "(" <expressao> ")"
-<chamada_funcao> ::= <id> "(" <lista_argumentos> ")"
-<id> ::= token identificador
-<numero_inteiro> ::= token numero inteiro
-<numero_real> ::= token numero real
-<string> ::= token cadeia de caracteres
+<termo> ::= <fator> { ( "*" | "/" | "\" | "mod" | "MOD" ) <fator> }
+
+<fator> ::=
+  NUM_INT | NUM_FLOAT | STRING | "verdadeiro" | "falso"
+  | ID [ "[" <expressao> "]" | "(" <lista_argumentos> ")" ]
+  | "(" <expressao> ")"
+  | "-" <fator>
+
 
 -----------------------------------------------------------------------------
 3. OBSERVACOES GERAIS

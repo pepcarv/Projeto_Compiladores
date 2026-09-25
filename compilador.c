@@ -3,7 +3,7 @@ COMPILADORES - PROJETO - Fase 1: Analise Lexica e Analise Sintatica
 Linguagem: MiniVisualg (Visualg Simplificado)
 
 Integrantes do grupo:
-  - 
+  - Mateus Ribeiro Cerqueira - 10443901
   - Pedro Henrique Carvalho Pereira - 10418861
 
 Compilacao (conforme especificado):
@@ -36,6 +36,11 @@ typedef enum {
     // delimitadores, string literal, atribuicao "<-", etc.), respeitando os
     // nomes ja sugeridos pelo descritivo e mantendo consistencia com a GLC
     // definida em etapa1_gramatica.txt
+    TOKEN_STRING,
+    TOKEN_OP_ARIT,
+    TOKEN_OP_LOG,
+    TOKEN_ASSIGN,
+    TOKEN_DELIM
 } TokenNome;
 
 // Sub-codigos para especificar o atributo de operadores relacionais
@@ -45,6 +50,7 @@ typedef enum {
     OP_EQ, // == (Equal) -- TODO: confirmar simbolo usado no MiniVisualg (Anexo I usa "=")
     OP_GT, // > (Greater Than)
     OP_GE // >= (Greater or Equal)
+    OP_NE, /* <> Not Equal */
 } OpRelAtributo;
 
 // Estrutura do Token com a Union de Atributos (Figura 2)
@@ -65,6 +71,33 @@ typedef struct {
 // na Figura 2, mas necessaria pois Token.attribute.table_index referencia
 // indices dela). Deve armazenar pelo menos o lexema (nome) do identificador.
 
+/* Tabela de Simbolos: guarda o texto (lexema) de identificadores, strings,
+   palavras reservadas e operadores/delimitadores, referenciados pelos
+   tokens atraves de attribute.table_index. */
+#define SYM_CAP_INICIAL 64
+static char **symtab = NULL;
+static int symCount = 0;
+static int symCap = 0;
+
+static int addSymbol(const char *s) {
+    if (symCount >= symCap) {
+        symCap = (symCap == 0) ? SYM_CAP_INICIAL : symCap * 2;
+        symtab = (char **) realloc(symtab, (size_t) symCap * sizeof(char *));
+    }
+    symtab[symCount] = (char *) malloc(strlen(s) + 1);
+    strcpy(symtab[symCount], s);
+    symCount++;
+    return symCount - 1;
+}
+
+// Procura um identificador ja existente na tabela
+static int findOrAddIdentifier(const char *s) {
+    for (int i = 0; i < symCount; i++) {
+        if (strcmp(symtab[i], s) == 0) return i;
+    }
+    return addSymbol(s);
+}
+
 //SECAO 2: PROTOTIPOS
 
 // ---- Analisador Lexico (Scanner) ----
@@ -73,34 +106,47 @@ typedef struct {
 //   - posicao atual de leitura no buffer
 //   - linha atual (para reporte de erros)
 //   - arquivo de saida dos tokens
+
+static char *buffer = NULL;   /* conteudo do arquivo fonte carregado em memoria */
+static long bufLen = 0;
+static long bufPos = 0;
+static int linhaAtual = 1;
+static FILE *arqSaida = NULL; /* arquivo de saida dos tokens */
+
+
 Token obterToken(void);
 void infoToken(Token t);
 
 // ---- Analisador Sintatico (Parser) ----
 // TODO: declarar variavel global do parser:
 //   - Token lookahead (token atual sob analise, conforme Figura 1: "char lookahead")
+static Token lookahead;
 void nextToken(void);
 
 // TODO: declarar protótipos das funcoes de descida recursiva, uma para cada
 // nao-terminal definido na gramatica da Etapa 1 (etapa1_gramatica.txt).
 // Exemplos esperados a partir do Anexo I (ajustar nomes conforme a GLC final):
-//   void analisar_programa(void);
-//   void analisar_declaracoes(void);
-//   void analisar_bloco_comandos(void);
-//   void analisar_comando(void);
-//   void analisar_atribuicao(void);
-//   void analisar_condicional(void);       // se / senao / fimse
-//   void analisar_repeticao_para(void);    // para / ate / passo / fimpara
-//   void analisar_repeticao_enquanto(void);// enquanto / fimenquanto
-//   void analisar_leitura(void);           // leia(...)
-//   void analisar_escrita(void);           // escreva(...) / escreval(...)
-//   void analisar_expressao(void);
-//   void analisar_expressao_relacional(void);
-//   void analisar_termo(void);
-//   void analisar_fator(void);
-//   void analisar_declaracao_procedimento(void);
-//   void analisar_declaracao_funcao(void);
-//   void analisar_chamada(void);
+void analisar_programa(void);
+void analisar_declaracoes(void);
+void analisar_tipo(void);
+void analisar_subrotinas(void);
+void analisar_declaracao_procedimento(void);
+void analisar_declaracao_funcao(void);
+void analisar_lista_parametros(void);
+void analisar_bloco_comandos(void);
+void analisar_comando(void);
+void analisar_leitura(void);
+void analisar_escrita(void);
+void analisar_condicional(void);
+void analisar_repeticao_para(void);
+void analisar_repeticao_enquanto(void);
+void analisar_lista_argumentos(void);
+void analisar_expressao(void);
+void analisar_expr_logica(void);
+void analisar_expr_relacional(void);
+void analisar_expr_aritmetica(void);
+void analisar_termo(void);
+void analisar_fator(void);
 
 void erroLexico(int linha, const char *sequencia);
 void erroSintatico(int linha, Token tokenIncorreto);
@@ -122,6 +168,75 @@ Interacao com o Parser conforme Figura 1: obterToken() / infoToken()
 //   fimprocedimento, funcao, fimfuncao, retorne, verdadeiro, falso, e, ou,
 //   nao, mod
 // TODO: confirmar lista completa e definitiva junto da Etapa 1 (GLC).
+
+
+// Palavras reservadas do MiniVisualg, levantadas a partir do Anexo I
+static const char *palavrasReservadas[] = {
+    "algoritmo", "var", "inicio", "fimalgoritmo",
+    "caractere", "inteiro", "real", "logico", "vetor", "de",
+    "escreva", "escreval", "leia",
+    "se", "entao", "senao", "fimse",
+    "para", "ate", "passo", "faca", "fimpara",
+    "enquanto", "fimenquanto",
+    "procedimento", "fimprocedimento",
+    "funcao", "fimfuncao", "retorne",
+    "verdadeiro", "falso",
+    "E", "OU", "mod", "MOD"
+};
+
+
+static const int totalPalavrasReservadas =
+    (int) (sizeof(palavrasReservadas) / sizeof(palavrasReservadas[0]));
+
+
+
+
+
+static int ehPalavraReservada(const char *lexema) {
+    for (int i = 0; i < totalPalavrasReservadas; i++) {
+        if (strcmp(palavrasReservadas[i], lexema) == 0) return 1;
+    }
+    return 0;
+}
+
+
+
+static int fimDoArquivo(void) {
+    return bufPos >= bufLen;
+}
+
+static char charAtual(void) {
+    if (fimDoArquivo()) return '\0';
+    return buffer[bufPos];
+}
+
+
+static char proximoChar(void) {
+    if (bufPos + 1 >= bufLen) return '\0';
+    return buffer[bufPos + 1];
+}
+
+
+
+static void avancarChar(void) {
+    if (fimDoArquivo()) return;
+    if (buffer[bufPos] == '\n') linhaAtual++;
+    bufPos++;
+}
+
+// pular espacos em branco e comentarios (// ate o fim da linha)
+static void pularEspacosEComentarios(void) {
+    for (;;) {
+        while (!fimDoArquivo() && isspace((unsigned char) charAtual())) {
+            avancarChar();
+        }
+        if (!fimDoArquivo() && charAtual() == '/' && proximoChar() == '/') {
+            while (!fimDoArquivo() && charAtual() != '\n') avancarChar();
+            continue;
+        }
+        break;
+    }
+}
 
 /*
 TODO (ETAPA 2): obterToken()
@@ -149,13 +264,246 @@ char *buffer e obterToken()):
   6. Retornar o Token preenchido.
 */
 Token obterToken(void) {
-    // TODO: implementar conforme pseudocodigo acima
     Token t;
-    // TODO: remover inicializacao provisoria abaixo apos implementacao real
-    t.type = TOKEN_EOF;
-    t.line = 0;
+
+    pularEspacosEComentarios();
+    t.line = linhaAtual;
+
+    if (fimDoArquivo()) {
+        t.type = TOKEN_EOF;
+        return t;
+    }
+
+    char c = charAtual();
+    char lex[256];
+    int n;
+
+    // Identificador ou palavra reservada 
+    if (isalpha((unsigned char) c) || c == '_') {
+        n = 0;
+
+
+
+
+        while (!fimDoArquivo() && (isalnum((unsigned char) charAtual()) || charAtual() == '_')) {
+            if (n < 255) lex[n++] = charAtual();
+            //printf("%d",n);
+            avancarChar();
+        }
+        lex[n] = '\0';
+
+
+
+        if (ehPalavraReservada(lex)) {
+            t.type = TOKEN_KEYWORD;
+            t.attribute.table_index = addSymbol(lex);
+        } 
+        
+        
+        else {
+            t.type = TOKEN_ID;
+            t.attribute.table_index = findOrAddIdentifier(lex);
+        }
+
+        
+        return t;
+    }
+
+    // Numero inteiro ou real
+    if (isdigit((unsigned char) c)) {
+        n = 0;
+        while (!fimDoArquivo() && isdigit((unsigned char) charAtual())) {
+            if (n < 255) lex[n++] = charAtual();
+            avancarChar();
+        }
+        if (!fimDoArquivo() && charAtual() == '.' && isdigit((unsigned char) proximoChar())) {
+            if (n < 255) lex[n++] = charAtual();
+            avancarChar();
+            while (!fimDoArquivo() && isdigit((unsigned char) charAtual())) {
+                if (n < 255) lex[n++] = charAtual();
+                avancarChar();
+            }
+            lex[n] = '\0';
+            t.type = TOKEN_NUM_FLOAT;
+            t.attribute.float_value = atof(lex);
+        } else {
+            lex[n] = '\0';
+            t.type = TOKEN_NUM_INT;
+            t.attribute.int_value = atoi(lex);
+        }
+        return t;
+    }
+
+    // Cadeia de caracteres literal
+    if (c == '"') {
+        avancarChar(); // aspa abre
+        n = 0;
+        while (!fimDoArquivo() && charAtual() != '"' && charAtual() != '\n') {
+            if (n < 255) lex[n++] = charAtual();
+            avancarChar();
+        }
+        if (fimDoArquivo() || charAtual() != '"') {
+            lex[n] = '\0';
+            erroLexico(t.line, lex);
+        }
+        avancarChar(); // fecha aspa 
+        lex[n] = '\0';
+        t.type = TOKEN_STRING;
+        t.attribute.table_index = addSymbol(lex);
+        return t;
+    }
+
+    // operadores relacionais e atribuicao
+    if (c == '<') {
+        avancarChar();
+        if (charAtual() == '-') {
+            avancarChar();
+            t.type = TOKEN_ASSIGN;
+            t.attribute.table_index = addSymbol("<-");
+        } else if (charAtual() == '=') {
+            avancarChar();
+            t.type = TOKEN_OP_REL;
+            t.attribute.op_code = OP_LE;
+        } else if (charAtual() == '>') {
+            avancarChar();
+            t.type = TOKEN_OP_REL;
+            t.attribute.op_code = OP_NE;
+        } else {
+            t.type = TOKEN_OP_REL;
+            t.attribute.op_code = OP_LT;
+        }
+        return t;
+    }
+
+
+
+
+    if (c == '>') {
+        avancarChar();
+        if (charAtual() == '=') {
+            avancarChar();
+            t.type = TOKEN_OP_REL;
+            t.attribute.op_code = OP_GE;
+        } else {
+            t.type = TOKEN_OP_REL;
+            t.attribute.op_code = OP_GT;
+        }
+        return t;
+    }
+    if (c == '=') {
+        avancarChar();
+        t.type = TOKEN_OP_REL;
+        t.attribute.op_code = OP_EQ;
+        return t;
+    }
+
+
+
+
+
+
+
+    // Operadores aritmeticos
+    if (c == '+' || c == '-' || c == '*' || c == '/' || c == '\\') {
+        avancarChar();
+        lex[0] = c;
+        lex[1] = '\0';
+        t.type = TOKEN_OP_ARIT;
+        t.attribute.table_index = addSymbol(lex);
+        return t;
+    }
+
+
+
+    // Intervalo de vetor ".."
+    if (c == '.' && proximoChar() == '.') {
+        avancarChar();
+        avancarChar();
+        t.type = TOKEN_DELIM;
+        t.attribute.table_index = addSymbol("..");
+        return t;
+    }
+
+
+
+    // Delimitadores
+    if (c == '(' || c == ')' || c == '[' || c == ']' || c == ',' || c == ':') {
+        avancarChar();
+        lex[0] = c;
+        lex[1] = '\0';
+        t.type = TOKEN_DELIM;
+        t.attribute.table_index = addSymbol(lex);
+        return t;
+    }
+
+    // erro - encerra o processo
+    n = 0;
+    while (!fimDoArquivo() && !isspace((unsigned char) charAtual()) && n < 255) {
+        lex[n++] = charAtual();
+        //printf("%d",n);
+        avancarChar();
+    }
+    if (n == 0 && !fimDoArquivo()) {
+      //printf("%d",n);
+        lex[n++] = charAtual();
+        avancarChar();
+    }
+    lex[n] = '\0';
+    erroLexico(t.line, lex);
+    t.type = TOKEN_EOF; //erroLexico encerra o processo
     return t;
 }
+
+//melhorar para SC facil pra qlqr tipo
+static const char *nomeDoToken(TokenNome type) {
+    switch (type) {
+        case TOKEN_EOF: return "EOF";
+        
+        case TOKEN_ID: return "IDENTIFICADOR";
+        
+        case TOKEN_NUM_INT: return "NUM_INTEIRO";
+        
+        case TOKEN_NUM_FLOAT: return "NUM_REAL";
+        
+        case TOKEN_OP_REL: return "OP_RELACIONAL";
+        
+        case TOKEN_KEYWORD: return "PALAVRA_RESERVADA";
+        
+        case TOKEN_STRING: return "STRING";
+        
+
+
+        case TOKEN_OP_ARIT: return "OP_ARITMETICO";
+        
+        case TOKEN_ASSIGN: return "ATRIBUICAO";
+        
+        case TOKEN_DELIM: return "DELIMITADOR";
+    }
+    return "DESCONHECIDO";
+}
+
+
+static const char *nomeOpRel(OpRelAtributo op) {
+    switch (op) {
+        case OP_LT: return "<";
+        
+        case OP_LE: return "<=";
+        
+        case OP_EQ: return "=";
+        
+        
+        case OP_NE: return "<>";
+        
+        case OP_GT: return ">";
+        
+        
+        case OP_GE: return ">=";
+    }
+    return "?";
+}
+
+
+
 
 /*
 TODO (ETAPA 2): infoToken()
