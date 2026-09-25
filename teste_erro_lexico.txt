@@ -1,0 +1,8 @@
+algoritmo "ERRO"
+var
+x: inteiro
+inicio
+x <- 10
+// eofnwofhoief teste
+escreval("Valor: ", x @ 5)
+fimalgoritmo

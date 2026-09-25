@@ -30,7 +30,7 @@ typedef enum {
     TOKEN_NUM_INT, // Numeros inteiros (Ex: 42)
     TOKEN_NUM_FLOAT, // Numeros reais (Ex: 3.14)
     TOKEN_OP_REL, // Operadores relacionais
-    TOKEN_KEYWORD // Palavras reservadas
+    TOKEN_KEYWORD, // Palavras reservadas
     // TODO: avaliar necessidade de tokens adicionais para cobrir toda a
     // gramatica da Etapa 1 (ex: operadores aritmeticos, operadores logicos,
     // delimitadores, string literal, atribuicao "<-", etc.), respeitando os
@@ -49,8 +49,8 @@ typedef enum {
     OP_LE, // <= (Less or Equal)
     OP_EQ, // == (Equal) -- TODO: confirmar simbolo usado no MiniVisualg (Anexo I usa "=")
     OP_GT, // > (Greater Than)
-    OP_GE // >= (Greater or Equal)
-    OP_NE, /* <> Not Equal */
+    OP_GE, // >= (Greater or Equal)
+    OP_NE /* <> Not Equal */
 } OpRelAtributo;
 
 // Estrutura do Token com a Union de Atributos (Figura 2)
@@ -80,22 +80,22 @@ static int symCount = 0;
 static int symCap = 0;
 
 static int addSymbol(const char *s) {
-    if (symCount >= symCap) {
-        symCap = (symCap == 0) ? SYM_CAP_INICIAL : symCap * 2;
-        symtab = (char **) realloc(symtab, (size_t) symCap * sizeof(char *));
-    }
-    symtab[symCount] = (char *) malloc(strlen(s) + 1);
-    strcpy(symtab[symCount], s);
-    symCount++;
-    return symCount - 1;
+  if (symCount >= symCap) {
+    symCap = (symCap == 0) ? SYM_CAP_INICIAL : symCap * 2;
+    symtab = (char **) realloc(symtab, (size_t) symCap * sizeof(char *));
+  }
+  symtab[symCount] = (char *) malloc(strlen(s) + 1);
+  strcpy(symtab[symCount], s);
+  symCount++;
+  return symCount - 1;
 }
 
 // Procura um identificador ja existente na tabela
 static int findOrAddIdentifier(const char *s) {
-    for (int i = 0; i < symCount; i++) {
-        if (strcmp(symtab[i], s) == 0) return i;
-    }
-    return addSymbol(s);
+  for (int i = 0; i < symCount; i++) {
+    if (strcmp(symtab[i], s) == 0) return i;
+  }
+  return addSymbol(s);
 }
 
 //SECAO 2: PROTOTIPOS
@@ -172,71 +172,70 @@ Interacao com o Parser conforme Figura 1: obterToken() / infoToken()
 
 // Palavras reservadas do MiniVisualg, levantadas a partir do Anexo I
 static const char *palavrasReservadas[] = {
-    "algoritmo", "var", "inicio", "fimalgoritmo",
-    "caractere", "inteiro", "real", "logico", "vetor", "de",
-    "escreva", "escreval", "leia",
-    "se", "entao", "senao", "fimse",
-    "para", "ate", "passo", "faca", "fimpara",
-    "enquanto", "fimenquanto",
-    "procedimento", "fimprocedimento",
-    "funcao", "fimfuncao", "retorne",
-    "verdadeiro", "falso",
-    "E", "OU", "mod", "MOD"
+  "algoritmo", "var", "inicio", "fimalgoritmo",
+  "caractere", "inteiro", "real", "logico", "vetor", "de",
+  "escreva", "escreval", "leia",
+  "se", "entao", "senao", "fimse",
+  "para", "ate", "passo", "faca", "fimpara",
+  "enquanto", "fimenquanto",
+  "procedimento", "fimprocedimento",
+  "funcao", "fimfuncao", "retorne",
+  "verdadeiro", "falso",
+  "E", "OU", "mod", "MOD"
 };
 
 
-static const int totalPalavrasReservadas =
-    (int) (sizeof(palavrasReservadas) / sizeof(palavrasReservadas[0]));
+static const int totalPalavrasReservadas = (int) (sizeof(palavrasReservadas) / sizeof(palavrasReservadas[0]));
 
 
 
 
 
 static int ehPalavraReservada(const char *lexema) {
-    for (int i = 0; i < totalPalavrasReservadas; i++) {
-        if (strcmp(palavrasReservadas[i], lexema) == 0) return 1;
-    }
-    return 0;
+  for (int i = 0; i < totalPalavrasReservadas; i++) {
+    if (strcmp(palavrasReservadas[i], lexema) == 0) return 1;
+  }
+  return 0;
 }
 
 
 
 static int fimDoArquivo(void) {
-    return bufPos >= bufLen;
+  return bufPos >= bufLen;
 }
 
 static char charAtual(void) {
-    if (fimDoArquivo()) return '\0';
-    return buffer[bufPos];
+  if (fimDoArquivo()) return '\0';
+  return buffer[bufPos];
 }
 
 
 static char proximoChar(void) {
-    if (bufPos + 1 >= bufLen) return '\0';
-    return buffer[bufPos + 1];
+  if (bufPos + 1 >= bufLen) return '\0';
+  return buffer[bufPos + 1];
 }
 
 
 
 static void avancarChar(void) {
-    if (fimDoArquivo()) return;
-    if (buffer[bufPos] == '\n') linhaAtual++;
-    bufPos++;
+  if (fimDoArquivo()) return;
+  if (buffer[bufPos] == '\n') linhaAtual++;
+  bufPos++;
 }
 
 // pular espacos em branco e comentarios (// ate o fim da linha)
 static void pularEspacosEComentarios(void) {
   //loop infinito com for só pra conter o whiule
-    for (;;) {
-        while (!fimDoArquivo() && isspace((unsigned char) charAtual())) {
-            avancarChar();
-        }
-        if (!fimDoArquivo() && charAtual() == '/' && proximoChar() == '/') {
-            while (!fimDoArquivo() && charAtual() != '\n') avancarChar();
-            continue;
-        }
-        break;
+  for (;;) {
+    while (!fimDoArquivo() && isspace((unsigned char) charAtual())) {
+      avancarChar();
     }
+    if (!fimDoArquivo() && charAtual() == '/' && proximoChar() == '/') {
+      while (!fimDoArquivo() && charAtual() != '\n') avancarChar();
+      continue;
+    }
+    break;
+  }
 }
 
 /*
@@ -265,240 +264,240 @@ char *buffer e obterToken()):
   6. Retornar o Token preenchido.
 */
 Token obterToken(void) {
-    Token t;
+  Token t;
 
-    pularEspacosEComentarios();
-    t.line = linhaAtual;
+  pularEspacosEComentarios();
+  t.line = linhaAtual;
 
-    if (fimDoArquivo()) {
-        t.type = TOKEN_EOF;
-        return t;
-    }
+  if (fimDoArquivo()) {
+    t.type = TOKEN_EOF;
+    return t;
+  }
 
-    char c = charAtual();
-    char lex[256];
-    int n;
+  char c = charAtual();
+  char lex[256];
+  int n;
 
-    // Identificador ou palavra reservada 
-    if (isalpha((unsigned char) c) || c == '_') {
-        n = 0;
-
-
-
-
-        while (!fimDoArquivo() && (isalnum((unsigned char) charAtual()) || charAtual() == '_')) {
-            if (n < 255) lex[n++] = charAtual();
-            //printf("%d",n);
-            avancarChar();
-        }
-        lex[n] = '\0';
-
-
-
-        if (ehPalavraReservada(lex)) {
-            t.type = TOKEN_KEYWORD;
-            t.attribute.table_index = addSymbol(lex);
-        } 
-        
-        
-        else {
-            t.type = TOKEN_ID;
-            t.attribute.table_index = findOrAddIdentifier(lex);
-        }
-
-        
-        return t;
-    }
-
-    // Numero inteiro ou real
-    if (isdigit((unsigned char) c)) {
-        n = 0;
-        while (!fimDoArquivo() && isdigit((unsigned char) charAtual())) {
-            if (n < 255) lex[n++] = charAtual();
-            avancarChar();
-        }
-        if (!fimDoArquivo() && charAtual() == '.' && isdigit((unsigned char) proximoChar())) {
-            if (n < 255) lex[n++] = charAtual();
-            avancarChar();
-            while (!fimDoArquivo() && isdigit((unsigned char) charAtual())) {
-                if (n < 255) lex[n++] = charAtual();
-                avancarChar();
-            }
-            lex[n] = '\0';
-            t.type = TOKEN_NUM_FLOAT;
-            t.attribute.float_value = atof(lex);
-        } else {
-            lex[n] = '\0';
-            t.type = TOKEN_NUM_INT;
-            t.attribute.int_value = atoi(lex);
-        }
-        return t;
-    }
-
-    // Cadeia de caracteres literal
-    if (c == '"') {
-        avancarChar(); // aspa abre
-        n = 0;
-        while (!fimDoArquivo() && charAtual() != '"' && charAtual() != '\n') {
-            if (n < 255) lex[n++] = charAtual();
-            avancarChar();
-        }
-        if (fimDoArquivo() || charAtual() != '"') {
-            lex[n] = '\0';
-            erroLexico(t.line, lex);
-        }
-        avancarChar(); // fecha aspa 
-        lex[n] = '\0';
-        t.type = TOKEN_STRING;
-        t.attribute.table_index = addSymbol(lex);
-        return t;
-    }
-
-    // operadores relacionais e atribuicao
-    if (c == '<') {
-        avancarChar();
-        if (charAtual() == '-') {
-            avancarChar();
-            t.type = TOKEN_ASSIGN;
-            t.attribute.table_index = addSymbol("<-");
-        } else if (charAtual() == '=') {
-            avancarChar();
-            t.type = TOKEN_OP_REL;
-            t.attribute.op_code = OP_LE;
-        } else if (charAtual() == '>') {
-            avancarChar();
-            t.type = TOKEN_OP_REL;
-            t.attribute.op_code = OP_NE;
-        } else {
-            t.type = TOKEN_OP_REL;
-            t.attribute.op_code = OP_LT;
-        }
-        return t;
-    }
-
-
-
-
-    if (c == '>') {
-        avancarChar();
-        if (charAtual() == '=') {
-            avancarChar();
-            t.type = TOKEN_OP_REL;
-            t.attribute.op_code = OP_GE;
-        } else {
-            t.type = TOKEN_OP_REL;
-            t.attribute.op_code = OP_GT;
-        }
-        return t;
-    }
-    if (c == '=') {
-        avancarChar();
-        t.type = TOKEN_OP_REL;
-        t.attribute.op_code = OP_EQ;
-        return t;
-    }
-
-
-
-
-
-
-
-    // Operadores aritmeticos
-    if (c == '+' || c == '-' || c == '*' || c == '/' || c == '\\') {
-        avancarChar();
-        lex[0] = c;
-        lex[1] = '\0';
-        t.type = TOKEN_OP_ARIT;
-        t.attribute.table_index = addSymbol(lex);
-        return t;
-    }
-
-
-
-    // Intervalo de vetor ".."
-    if (c == '.' && proximoChar() == '.') {
-        avancarChar();
-        avancarChar();
-        t.type = TOKEN_DELIM;
-        t.attribute.table_index = addSymbol("..");
-        return t;
-    }
-
-
-
-    // Delimitadores
-    if (c == '(' || c == ')' || c == '[' || c == ']' || c == ',' || c == ':') {
-        avancarChar();
-        lex[0] = c;
-        lex[1] = '\0';
-        t.type = TOKEN_DELIM;
-        t.attribute.table_index = addSymbol(lex);
-        return t;
-    }
-
-    // erro - encerra o processo
+  // Identificador ou palavra reservada 
+  if (isalpha((unsigned char) c) || c == '_') {
     n = 0;
-    while (!fimDoArquivo() && !isspace((unsigned char) charAtual()) && n < 255) {
-        lex[n++] = charAtual();
-        //printf("%d",n);
-        avancarChar();
-    }
-    if (n == 0 && !fimDoArquivo()) {
+
+
+
+
+    while (!fimDoArquivo() && (isalnum((unsigned char) charAtual()) || charAtual() == '_')) {
+      if (n < 255) lex[n++] = charAtual();
       //printf("%d",n);
-        lex[n++] = charAtual();
-        avancarChar();
+      avancarChar();
     }
     lex[n] = '\0';
-    erroLexico(t.line, lex);
-    t.type = TOKEN_EOF; //erroLexico encerra o processo
+
+
+
+    if (ehPalavraReservada(lex)) {
+      t.type = TOKEN_KEYWORD;
+      t.attribute.table_index = addSymbol(lex);
+    } 
+    
+    
+    else {
+      t.type = TOKEN_ID;
+      t.attribute.table_index = findOrAddIdentifier(lex);
+    }
+
+    
     return t;
+  }
+
+  // Numero inteiro ou real
+  if (isdigit((unsigned char) c)) {
+    n = 0;
+    while (!fimDoArquivo() && isdigit((unsigned char) charAtual())) {
+      if (n < 255) lex[n++] = charAtual();
+      avancarChar();
+    }
+    if (!fimDoArquivo() && charAtual() == '.' && isdigit((unsigned char) proximoChar())) {
+      if (n < 255) lex[n++] = charAtual();
+      avancarChar();
+      while (!fimDoArquivo() && isdigit((unsigned char) charAtual())) {
+        if (n < 255) lex[n++] = charAtual();
+        avancarChar();
+      }
+      lex[n] = '\0';
+      t.type = TOKEN_NUM_FLOAT;
+      t.attribute.float_value = atof(lex);
+    } else {
+      lex[n] = '\0';
+      t.type = TOKEN_NUM_INT;
+      t.attribute.int_value = atoi(lex);
+    }
+    return t;
+  }
+
+  // Cadeia de caracteres literal
+  if (c == '"') {
+    avancarChar(); // aspa abre
+    n = 0;
+    while (!fimDoArquivo() && charAtual() != '"' && charAtual() != '\n') {
+      if (n < 255) lex[n++] = charAtual();
+      avancarChar();
+    }
+    if (fimDoArquivo() || charAtual() != '"') {
+      lex[n] = '\0';
+      erroLexico(t.line, lex);
+    }
+    avancarChar(); // fecha aspa 
+    lex[n] = '\0';
+    t.type = TOKEN_STRING;
+    t.attribute.table_index = addSymbol(lex);
+    return t;
+  }
+
+  // operadores relacionais e atribuicao
+  if (c == '<') {
+    avancarChar();
+    if (charAtual() == '-') {
+      avancarChar();
+      t.type = TOKEN_ASSIGN;
+      t.attribute.table_index = addSymbol("<-");
+    } else if (charAtual() == '=') {
+      avancarChar();
+      t.type = TOKEN_OP_REL;
+      t.attribute.op_code = OP_LE;
+    } else if (charAtual() == '>') {
+      avancarChar();
+      t.type = TOKEN_OP_REL;
+      t.attribute.op_code = OP_NE;
+    } else {
+      t.type = TOKEN_OP_REL;
+      t.attribute.op_code = OP_LT;
+    }
+    return t;
+  }
+
+
+
+
+  if (c == '>') {
+    avancarChar();
+    if (charAtual() == '=') {
+      avancarChar();
+      t.type = TOKEN_OP_REL;
+      t.attribute.op_code = OP_GE;
+    } else {
+      t.type = TOKEN_OP_REL;
+      t.attribute.op_code = OP_GT;
+    }
+    return t;
+  }
+  if (c == '=') {
+    avancarChar();
+    t.type = TOKEN_OP_REL;
+    t.attribute.op_code = OP_EQ;
+    return t;
+  }
+
+
+
+
+
+
+
+  // Operadores aritmeticos
+  if (c == '+' || c == '-' || c == '*' || c == '/' || c == '\\') {
+    avancarChar();
+    lex[0] = c;
+    lex[1] = '\0';
+    t.type = TOKEN_OP_ARIT;
+    t.attribute.table_index = addSymbol(lex);
+    return t;
+  }
+
+
+
+  // Intervalo de vetor ".."
+  if (c == '.' && proximoChar() == '.') {
+    avancarChar();
+    avancarChar();
+    t.type = TOKEN_DELIM;
+    t.attribute.table_index = addSymbol("..");
+    return t;
+  }
+
+
+
+  // Delimitadores
+  if (c == '(' || c == ')' || c == '[' || c == ']' || c == ',' || c == ':') {
+    avancarChar();
+    lex[0] = c;
+    lex[1] = '\0';
+    t.type = TOKEN_DELIM;
+    t.attribute.table_index = addSymbol(lex);
+    return t;
+  }
+
+  // erro - encerra o processo
+  n = 0;
+  while (!fimDoArquivo() && !isspace((unsigned char) charAtual()) && n < 255) {
+      lex[n++] = charAtual();
+      //printf("%d",n);
+      avancarChar();
+  }
+  if (n == 0 && !fimDoArquivo()) {
+    //printf("%d",n);
+      lex[n++] = charAtual();
+      avancarChar();
+  }
+  lex[n] = '\0';
+  erroLexico(t.line, lex);
+  t.type = TOKEN_EOF; //erroLexico encerra o processo
+  return t;
 }
 
 //melhorar para SC facil pra qlqr tipo
 static const char *nomeDoToken(TokenNome type) {
-    switch (type) {
-        case TOKEN_EOF: return "EOF";
-        
-        case TOKEN_ID: return "IDENTIFICADOR";
-        
-        case TOKEN_NUM_INT: return "NUM_INTEIRO";
-        
-        case TOKEN_NUM_FLOAT: return "NUM_REAL";
-        
-        case TOKEN_OP_REL: return "OP_RELACIONAL";
-        
-        case TOKEN_KEYWORD: return "PALAVRA_RESERVADA";
-        
-        case TOKEN_STRING: return "STRING";
-        
+  switch (type) {
+    case TOKEN_EOF: return "EOF";
+    
+    case TOKEN_ID: return "IDENTIFICADOR";
+    
+    case TOKEN_NUM_INT: return "NUM_INTEIRO";
+    
+    case TOKEN_NUM_FLOAT: return "NUM_REAL";
+    
+    case TOKEN_OP_REL: return "OP_RELACIONAL";
+    
+    case TOKEN_KEYWORD: return "PALAVRA_RESERVADA";
+    
+    case TOKEN_STRING: return "STRING";
+    
+    case TOKEN_OP_LOG: return "OP_LOGICO";
 
-
-        case TOKEN_OP_ARIT: return "OP_ARITMETICO";
-        
-        case TOKEN_ASSIGN: return "ATRIBUICAO";
-        
-        case TOKEN_DELIM: return "DELIMITADOR";
-    }
-    return "DESCONHECIDO";
+    case TOKEN_OP_ARIT: return "OP_ARITMETICO";
+    
+    case TOKEN_ASSIGN: return "ATRIBUICAO";
+    
+    case TOKEN_DELIM: return "DELIMITADOR";
+  }
+  return "DESCONHECIDO";
 }
 
 
 static const char *nomeOpRel(OpRelAtributo op) {
     switch (op) {
-        case OP_LT: return "<";
-        
-        case OP_LE: return "<=";
-        
-        case OP_EQ: return "=";
-        
-        
-        case OP_NE: return "<>";
-        
-        case OP_GT: return ">";
-        
-        
-        case OP_GE: return ">=";
+      case OP_LT: return "<";
+      
+      case OP_LE: return "<=";
+      
+      case OP_EQ: return "=";
+      
+      
+      case OP_NE: return "<>";
+      
+      case OP_GT: return ">";
+      
+      
+      case OP_GE: return ">=";
     }
     return "?";
 }
@@ -517,28 +516,28 @@ TODO: garantir que a saida impressa na tela seja IDENTICA a saida gravada
 no arquivo de tokens (mesma formatacao, mesma ordem).
 */
 void infoToken(Token t) {
-    char linhaFormatada[512];
+  char linhaFormatada[512];
 
-    if (t.type == TOKEN_EOF) {
-        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s\n", t.line, nomeDoToken(t.type));
-    } 
-    else if (t.type == TOKEN_NUM_INT) {
-        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %d\n", t.line, nomeDoToken(t.type), t.attribute.int_value);
-    } 
-    else if (t.type == TOKEN_NUM_FLOAT) {
-        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %g\n", t.line, nomeDoToken(t.type), t.attribute.float_value);
-    } 
-    else if (t.type == TOKEN_OP_REL) {
-        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), nomeOpRel(t.attribute.op_code));
-    } 
-    else {
-        // ID, KEYWORD, STRING, OP_ARIT, ASSIGN, DELIM 
-        // guardado na tabela de simbolos
-        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), symtab[t.attribute.table_index]);
-    }
+  if (t.type == TOKEN_EOF) {
+    snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s\n", t.line, nomeDoToken(t.type));
+  } 
+  else if (t.type == TOKEN_NUM_INT) {
+    snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %d\n", t.line, nomeDoToken(t.type), t.attribute.int_value);
+  } 
+  else if (t.type == TOKEN_NUM_FLOAT) {
+    snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %g\n", t.line, nomeDoToken(t.type), t.attribute.float_value);
+  } 
+  else if (t.type == TOKEN_OP_REL) {
+    snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), nomeOpRel(t.attribute.op_code));
+  } 
+  else {
+      // ID, KEYWORD, STRING, OP_ARIT, ASSIGN, DELIM 
+      // guardado na tabela de simbolos
+    snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), symtab[t.attribute.table_index]);
+  }
 
-    printf("%s", linhaFormatada);
-    if (arqSaida != NULL) fputs(linhaFormatada, arqSaida);
+  printf("%s", linhaFormatada);
+  if (arqSaida != NULL) fputs(linhaFormatada, arqSaida);
 }
 
 /*
@@ -549,14 +548,14 @@ Ao encontrar uma sequencia lexicamente invalida:
   2. Finalizar todo o processo (compilacao deve parar).
 */
 void erroLexico(int linha, const char *sequencia) {
-    printf("Erro lexico na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
-    
-    
-    if (arqSaida != NULL) {
-        fprintf(arqSaida, "Erro lexico na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
-        fclose(arqSaida);
-    }
-    exit(1);
+  printf("Erro lexico na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
+  
+  
+  if (arqSaida != NULL) {
+    fprintf(arqSaida, "Erro lexico na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
+    fclose(arqSaida);
+  }
+  exit(1);
 }
 
 /*
@@ -571,7 +570,8 @@ Conforme Figura 1 (PARSER contem "char lookahead" e nextToken()):
   2. Armazenar o resultado na variavel global lookahead do parser.
 */
 void nextToken(void) {
-    // TODO: implementar conforme pseudocodigo acima
+  lookahead = obterToken();
+  infoToken(lookahead);
 }
 
 /*

@@ -1,0 +1,9 @@
+algoritmo "Hello World"
+var
+//oioioioi
+nome: caractere
+inicio
+escreva("Nome: ")
+leia(nome)
+escreval("Ola, ", nome, "!")
+fimalgoritmo
