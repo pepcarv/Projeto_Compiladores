@@ -226,6 +226,7 @@ static void avancarChar(void) {
 
 // pular espacos em branco e comentarios (// ate o fim da linha)
 static void pularEspacosEComentarios(void) {
+  //loop infinito com for só pra conter o whiule
     for (;;) {
         while (!fimDoArquivo() && isspace((unsigned char) charAtual())) {
             avancarChar();
@@ -516,8 +517,28 @@ TODO: garantir que a saida impressa na tela seja IDENTICA a saida gravada
 no arquivo de tokens (mesma formatacao, mesma ordem).
 */
 void infoToken(Token t) {
-    // TODO: implementar formatacao e impressao/gravacao do token
-    (void)t; // remover apos implementacao
+    char linhaFormatada[512];
+
+    if (t.type == TOKEN_EOF) {
+        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s\n", t.line, nomeDoToken(t.type));
+    } 
+    else if (t.type == TOKEN_NUM_INT) {
+        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %d\n", t.line, nomeDoToken(t.type), t.attribute.int_value);
+    } 
+    else if (t.type == TOKEN_NUM_FLOAT) {
+        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %g\n", t.line, nomeDoToken(t.type), t.attribute.float_value);
+    } 
+    else if (t.type == TOKEN_OP_REL) {
+        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), nomeOpRel(t.attribute.op_code));
+    } 
+    else {
+        // ID, KEYWORD, STRING, OP_ARIT, ASSIGN, DELIM 
+        // guardado na tabela de simbolos
+        snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), symtab[t.attribute.table_index]);
+    }
+
+    printf("%s", linhaFormatada);
+    if (arqSaida != NULL) fputs(linhaFormatada, arqSaida);
 }
 
 /*
@@ -528,9 +549,14 @@ Ao encontrar uma sequencia lexicamente invalida:
   2. Finalizar todo o processo (compilacao deve parar).
 */
 void erroLexico(int linha, const char *sequencia) {
-    // TODO: implementar conforme pseudocodigo acima
-    (void)linha;
-    (void)sequencia;
+    printf("Erro lexico na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
+    
+    
+    if (arqSaida != NULL) {
+        fprintf(arqSaida, "Erro lexico na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
+        fclose(arqSaida);
+    }
+    exit(1);
 }
 
 /*
@@ -632,9 +658,42 @@ TODO (ETAPA 2/3): main()
      desconto de 1.0 ponto por ocorrencia).
 */
 int main(int argc, char *argv[]) {
-    // TODO: implementar conforme pseudocodigo acima
-    (void)argc;
-    (void)argv;
+  if (argc < 2) {
+      printf("Uso: %s <arquivo_fonte>\n", argv[0]);
+      return 0;
+  }
 
-    return 0;
+
+  FILE *arqFonte = fopen(argv[1], "rb");
+  
+  
+  
+  if (arqFonte == NULL) {
+      printf("Erro ao abrir\n");
+      return 0;
+  }
+
+  fseek(arqFonte, 0, SEEK_END);
+  bufLen = ftell(arqFonte);
+  fseek(arqFonte, 0, SEEK_SET);
+
+  
+  //buffer
+  buffer = (char *) malloc((size_t) bufLen + 1);
+  size_t lidos = fread(buffer, 1, (size_t) bufLen, arqFonte);
+  buffer[lidos] = '\0';
+  bufLen = (long) lidos;
+  
+  //TODO close
+  fclose(arqFonte);
+
+  arqSaida = fopen("tokens_saida.txt", "w");
+
+
+
+
+  // TODO: 
+  (void)argv;
+
+  return 0;
 }
