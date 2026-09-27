@@ -1,0 +1,6 @@
+algoritmo "ErroSintatico"
+var
+x: inteiro
+inicio
+x <-
+fimalgoritmo

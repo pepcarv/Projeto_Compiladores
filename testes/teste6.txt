@@ -1,0 +1,15 @@
+algoritmo "Teste05"
+var
+idade: inteiro
+inicio
+idade <- 15
+se (idade >= 18) entao
+escreval("Adulto")
+senao
+se (idade >= 12) entao
+escreval("Adolescente")
+senao
+escreval("Crianca")
+fimse
+fimse
+fimalgoritmo

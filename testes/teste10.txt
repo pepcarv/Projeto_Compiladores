@@ -1,0 +1,11 @@
+algoritmo "Teste09"
+var
+notas: vetor[1..4] de real
+i: inteiro
+inicio
+notas[1] <- 7.5
+notas[2] <- 8.0
+leia(notas[3])
+i <- 2
+escreval(notas[i])
+fimalgoritmo

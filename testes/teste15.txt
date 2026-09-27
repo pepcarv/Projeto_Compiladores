@@ -1,0 +1,6 @@
+algoritmo "ErroLexico"
+var
+x: inteiro
+inicio
+x <- 10 @ 2
+fimalgoritmo

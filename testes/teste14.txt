@@ -1,0 +1,15 @@
+algoritmo "Teste13"
+funcao eh_par(v: inteiro): logico
+inicio
+se (v MOD 2 = 0) entao
+retorne verdadeiro
+senao
+retorne falso
+fimse
+fimfuncao
+var
+num: inteiro
+inicio
+num <- 14
+escreval("Numero: ", num, " par? ", eh_par(num))
+fimalgoritmo

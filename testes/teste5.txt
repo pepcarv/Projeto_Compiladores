@@ -1,0 +1,18 @@
+algoritmo "Teste04"
+var
+a, b: inteiro
+resultado: logico
+inicio
+a <- 10
+b <- 20
+escreval(a = b)
+escreval(a <> b)
+escreval(a < b)
+escreval(a <= b)
+escreval(a > b)
+escreval(a >= b)
+resultado <- (a < b) E (b >= 20)
+escreval(resultado)
+resultado <- (a = 10) OU (b = 0)
+escreval(resultado)
+fimalgoritmo

@@ -1,0 +1,8 @@
+algoritmo "Teste11"
+procedimento mostrar_erro(mensagem: caractere)
+inicio
+escreval("ERRO: ", mensagem)
+fimprocedimento
+inicio
+mostrar_erro("Falha no sistema")
+fimalgoritmo

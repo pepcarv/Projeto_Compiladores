@@ -1,0 +1,7 @@
+algoritmo "Teste01"
+var
+inicio
+// comentario deve ser ignorado
+escreva("Ola, ")
+escreval("mundo!")
+fimalgoritmo

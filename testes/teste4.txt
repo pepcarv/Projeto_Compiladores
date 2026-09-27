@@ -1,0 +1,13 @@
+algoritmo "Teste03"
+var
+a, b: inteiro
+inicio
+a <- 10
+b <- 3
+escreval(a + b)
+escreval(a - b)
+escreval(a * b)
+escreval(a / b)
+escreval(a \ b)
+escreval(a MOD b)
+fimalgoritmo
