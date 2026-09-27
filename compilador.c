@@ -129,7 +129,6 @@ void nextToken(void);
 
 // ---- Analisador Sintatico (Parser) ----
 
-void nextToken(void);
 void consome(TokenNome tipo, const char *lexema);
 void analisar_programa(void);
 void analisar_declaracoes(void);

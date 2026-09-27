@@ -33,13 +33,30 @@ A função `obterToken()`:
 2. Olha o caractere atual e decide, a tipo de lexema: identificador/palavra reservada, inteiro/real (usando `.` para diferenciar `TOKEN_NUM_INT` de `TOKEN_NUM_FLOAT`), string, operadores relacionais e atribuição (`<`, `<=`, `<>`, `<-`, `>`, `>=`, `=`), aritméticos, intervalo de vetor (`..`) e os outros delimitadores (`( ) [ ] , :`).
 3. Caso nenhum padrão seja reconhecido, a sequência é acumulada até o próximo espaço e chama o erro através do `erroLexico()` e depois encerra
 
-Identificadores, strings e a maior parte dos operadores/delimitadores são armazenados em uma **tabela de símbolos** (`symtab` que é um vetor de strings) e o token guarda apenas o index (`attribute.table_index`), isso usando a estrutura de união de atributos definida na `Token` já definida no descritivo. As palavras reservadas estão em uma lista estática (`palavrasReservadas[]`) e identificadas pela função `ehPalavraReservada()`, identificadores por `findOrAddIdentifier()`. jà os operadores relacionais usam `OpRelAtributo`) em vez da tabela de símbolos, já que são um conjunto pequeno.
+Identificadores, strings e a maior parte dos operadores/delimitadores são armazenados em uma **tabela de símbolos** (`symtab` que é um vetor de strings) e o token guarda apenas o index (`attribute.table_index`), isso usando a estrutura de união de atributos definida na `Token` já definida no descritivo. As palavras reservadas estão em uma lista estática (`palavrasReservadas[]`) e identificadas pela função `ehPalavraReservada()`, identificadores por `findOrAddIdentifier()`. jà os operadores relacionais usam `OpRelAtributo` em vez da tabela de símbolos, já que são um conjunto pequeno.
 
 Nesse contexto, a função `infoToken()` imprime e grava cada token como `linha# CATEGORIA | lexema`, tanto na tela quanto em `tokens_saida.txt`.
 
 ## Analisador Sintático
 
+O analisador sintático foi implementado utilizando o algorítimo de **análise sintática descendente recursivo preditivo** seguindo a gramática definida pelo descritivo do projeto. Para isso, os não-terminais da gramática foram representados por funções no código, como `analisar_programa()` e `analisar_declaracoes()`.
 
+A função `nextToken()`:
+1. chama `obterToken()` para obter o próximo token do analisador léxico e armazena esse token em `lookahead`.
+2. chama `infoToken()` para registrar a leitura do token.
+
+A função `consome()`foi utilizada para verificar os terminais esperados pela gramática, ela:
+1. recebe como parâmetro o tipo de token esperado e, quando necessário, recebe também o lexema esperado.
+2. Caso o `lookahead` corresponda ao esperado, `nextToken()` é chamado e a análise continua.
+3. Caso contrário, é chamado `erroSintatico()`, que informa a linha e o token incorreto e encerra a execução.
+
+A análise começa em `analisar_programa()`, representando a estrutura geral de um programa na linguagem apresentada. A partir dela são analisadas as declarações de sub-rotinas, por `analisar_subrotinas()`, e variáveis, por `analisar_declaracoes()`, seguidas pelo bloco principal delimitado por `inicio` e `fimalgoritmo` e processado por `analisar_bloco_comandos()`. O bloco principal, chama repetidamente o método `analisar_comando()` até encontrar um terminal de fechamento de bloco. Então `analisar_comando()` identifica qual construção deve ser analisada.
+
+As expressões foram divididas em diferentes níveis para representar a precedência dos operadores. `analisar_expressao()` inicia pela expressão lógica `analisar_expr_logica()`, seguida pela relacional `analisar_expr_relacional()`, aritmética `analisar_expr_aritmetica()`, termo `analisar_termo()` e fator `analisar_fator()`. Dessa forma, operadores `E` e `OU` são tratados em `analisar_expr_logica()`, operadores relacionais em `analisar_expr_relacional()`, `+` e `-` em `analisar_expr_aritmetica()` e `*`, `/`, `\` e `MOD` em `analisar_termo()`. Por fim, `analisar_fator()` reconhece valores inteiros, reais, strings, valores lógicos, identificadores, vetores, chamadas de função, expressões entre parênteses e operadores unários `+` e `-`.
+
+Procedimentos e funções são reconhecidos por `analisar_subrotinas()`. Suas declarações são processadas respectivamente por `analisar_declaracao_procedimento()` e `analisar_declaracao_funcao()`, enquanto `analisar_lista_parametros()` trata os parâmetros e seus tipos.
+
+Por fim ao encontrar uma construção que não corresponde à gramática esperada, `erroSintatico()` imprime uma mensagem de erro com a linha e o token que provocou o erro, e encerra o processo.
 
 ## Relatório de Design e Implementação
 
