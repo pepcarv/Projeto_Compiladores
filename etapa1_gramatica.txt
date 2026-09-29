@@ -143,23 +143,3 @@ as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
   | ID [ "[" <expressao> "]" | "(" <lista_argumentos> ")" ]
   | "(" <expressao> ")"
   | "-" <fator>
-
-
------------------------------------------------------------------------------
-3. OBSERVACOES GERAIS
------------------------------------------------------------------------------
-TODO: revisar se todas as construcoes dos exemplos do Anexo I estao cobertas:
-  [ ] ESQUELETO (PrimeiroPasso)
-  [ ] COMENTARIOS (MensagemDupla, nome_do_algoritmo)
-  [ ] VARIAVEIS (BoasVindas, CadastroSimples, TextoELogico, TesteDeLogica)
-  [ ] OPERADORES ARITMETICOS (CalculadoraBasica)
-  [ ] OPERADORES RELACIONAIS (ComparaTextosENumeros)
-  [ ] OPERADORES LOGICOS (ParqueDeDiversoes)
-  [ ] ESTRUTURA DE CONTROLE (VerificaChuva, MaioridadeAninhado)
-  [ ] REPETICAO (ContagemSimples, ContagemRegressiva, ContadorManual)
-  [ ] ESTRUTURA DE DADOS - VETORES (ListaNomes, MediaNotas)
-  [ ] PROCEDIMENTOS (ProcedimentosSemParametros, ProcedimentosComParametros)
-  [ ] FUNCOES (RotinasComRetorno, FuncaoEhPar)
-
-TODO: indentacao NAO sera considerada para o projeto (conforme OBS do
-descritivo) -- confirmar que a gramatica nao depende de indentacao.

@@ -6,7 +6,7 @@ Integrantes do grupo:
   - Mateus Ribeiro Cerqueira - 10443901
   - Pedro Henrique Carvalho Pereira - 10418861
 
-Compilacao (conforme especificado):
+Compilacao:
   gcc -Wall -Wno-unused-result -g -Og compilador.c -o compilador
 
 Execucao:
