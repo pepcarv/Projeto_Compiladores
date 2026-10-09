@@ -90,12 +90,25 @@ static int addSymbol(const char *s) {
   return symCount - 1;
 }
 
-// Procura um identificador ja existente na tabela
+/* Tabela de identificadores: usada apenas para reconhecer repeticoes.
+   O token guarda somente o NUMERO do identificador (1, 2, 3...). */
+static char **idtab = NULL;
+static int idCount = 0;
+static int idCap = 0;
+
+// Retorna o numero (1-based) do identificador, cadastrando se for novo
 static int findOrAddIdentifier(const char *s) {
-  for (int i = 0; i < symCount; i++) {
-    if (strcmp(symtab[i], s) == 0) return i;
+  for (int i = 0; i < idCount; i++) {
+    if (strcmp(idtab[i], s) == 0) return i + 1;
   }
-  return addSymbol(s);
+  if (idCount >= idCap) {
+    idCap = (idCap == 0) ? SYM_CAP_INICIAL : idCap * 2;
+    idtab = (char **) realloc(idtab, (size_t) idCap * sizeof(char *));
+  }
+  idtab[idCount] = (char *) malloc(strlen(s) + 1);
+  strcpy(idtab[idCount], s);
+  idCount++;
+  return idCount;
 }
 
 //SECAO 2: PROTOTIPOS
@@ -534,6 +547,9 @@ void infoToken(Token t) {
   else if (t.type == TOKEN_OP_REL) {
     snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %s\n", t.line, nomeDoToken(t.type), nomeOpRel(t.attribute.op_code));
   } 
+  else if (t.type == TOKEN_ID) {
+    snprintf(linhaFormatada, sizeof(linhaFormatada), "%d# %s | %d\n", t.line, nomeDoToken(t.type), t.attribute.table_index);
+  }
   else {
       // ID, KEYWORD, STRING, OP_ARIT, ASSIGN, DELIM 
       // guardado na tabela de simbolos
@@ -978,6 +994,8 @@ void erroSintatico(int linha, Token tokenIncorreto) {
     printf("%s\n", nomeOpRel(tokenIncorreto.attribute.op_code));
   } else if (tokenIncorreto.type == TOKEN_EOF) {
     printf("EOF\n");
+  } else if (tokenIncorreto.type == TOKEN_ID) {
+    printf("IDENTIFICADOR %d\n", tokenIncorreto.attribute.table_index);
   } else {
     printf("%s\n", symtab[tokenIncorreto.attribute.table_index]);
   }
@@ -1049,6 +1067,11 @@ int main(int argc, char *argv[]) {
         free(symtab[i]);
     }
     free(symtab);
+
+    for (int i = 0; i < idCount; i++) {
+        free(idtab[i]);
+    }
+    free(idtab);
 
     free(buffer);
 
