@@ -1,0 +1,16 @@
+algoritmo "VariaveisLocaisFuncao"
+funcao dobro_mais_um(n: inteiro): inteiro
+var
+auxiliar: inteiro
+resultado: inteiro
+inicio
+auxiliar <- n * 2
+resultado <- auxiliar + 1
+retorne resultado
+fimfuncao
+var
+saida: inteiro
+inicio
+saida <- dobro_mais_um(4)
+escreval(saida)
+fimalgoritmo

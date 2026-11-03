@@ -1,0 +1,4 @@
+algoritmo "StringInvalida"
+inicio
+escreval("sem fechar)
+fimalgoritmo

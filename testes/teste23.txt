@@ -1,0 +1,11 @@
+algoritmo "FuncaoSemParametros"
+funcao fixo(): inteiro
+var
+local: inteiro
+inicio
+local <- 42
+retorne local
+fimfuncao
+inicio
+escreval(fixo())
+fimalgoritmo

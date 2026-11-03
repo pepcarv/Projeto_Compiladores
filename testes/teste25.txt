@@ -1,0 +1,6 @@
+algoritmo "PontoInvalido"
+var
+x: real
+inicio
+x<-12.
+fimalgoritmo

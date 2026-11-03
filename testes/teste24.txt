@@ -1,0 +1,6 @@
+algoritmo "SimboloJunto"
+var
+x: inteiro
+inicio
+x<-abc@def
+fimalgoritmo

@@ -1,0 +1,14 @@
+algoritmo "VariaveisLocaisProcedimento"
+var
+valor: inteiro
+procedimento mostrar(n: inteiro)
+var
+temporario: inteiro
+inicio
+temporario <- n + 3
+escreval(temporario)
+fimprocedimento
+inicio
+valor <- 4
+mostrar(valor)
+fimalgoritmo
