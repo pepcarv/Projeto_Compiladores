@@ -1,11 +1,8 @@
-algoritmo "Teste09"
-var
-notas: vetor[1..4] de real
-i: inteiro
+algoritmo "Teste10"
+procedimento linha_decorativa
 inicio
-notas[1] <- 7.5
-notas[2] <- 8.0
-leia(notas[3])
-i <- 2
-escreval(notas[i])
+escreval("----------------")
+fimprocedimento
+inicio
+linha_decorativa
 fimalgoritmo

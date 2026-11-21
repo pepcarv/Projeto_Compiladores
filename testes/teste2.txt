@@ -1,6 +1,7 @@
-algoritmo "ErroSintatico"
+algoritmo "Teste01"
 var
-x: inteiro
 inicio
-x <-
+// comentario deve ser ignorado
+escreva("Ola, ")
+escreval("mundo!")
 fimalgoritmo

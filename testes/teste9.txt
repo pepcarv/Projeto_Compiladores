@@ -1,8 +1,10 @@
-algoritmo "Teste07"
+algoritmo "Teste08"
 var
-i: inteiro
+contador: inteiro
 inicio
-para i de 10 ate 0 passo -2 faca
-escreval(i)
-fimpara
+contador <- 1
+enquanto (contador <= 5) faca
+escreval(contador)
+contador <- contador + 1
+fimenquanto
 fimalgoritmo

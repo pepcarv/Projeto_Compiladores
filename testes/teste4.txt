@@ -1,14 +1,13 @@
-algoritmo "Teste02"
+algoritmo "Teste03"
 var
-nome, sobrenome: caractere
-idade: inteiro
-altura: real
-ativo: logico
+a, b: inteiro
 inicio
-nome <- "Mateus"
-idade <- 20
-altura <- 1.75
-ativo <- verdadeiro
-leia(sobrenome)
-escreval(nome, sobrenome, idade, altura, ativo)
+a <- 10
+b <- 3
+escreval(a + b)
+escreval(a - b)
+escreval(a * b)
+escreval(a / b)
+escreval(a \ b)
+escreval(a MOD b)
 fimalgoritmo

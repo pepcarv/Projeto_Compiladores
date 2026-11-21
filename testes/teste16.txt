@@ -1,6 +1,6 @@
-algoritmo "ErroLexico"
+algoritmo "ErroSintatico"
 var
 x: inteiro
 inicio
-x <- 10 @ 2
+x <-
 fimalgoritmo

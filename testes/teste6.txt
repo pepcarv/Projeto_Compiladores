@@ -1,18 +1,15 @@
-algoritmo "Teste04"
+algoritmo "Teste05"
 var
-a, b: inteiro
-resultado: logico
+idade: inteiro
 inicio
-a <- 10
-b <- 20
-escreval(a = b)
-escreval(a <> b)
-escreval(a < b)
-escreval(a <= b)
-escreval(a > b)
-escreval(a >= b)
-resultado <- (a < b) E (b >= 20)
-escreval(resultado)
-resultado <- (a = 10) OU (b = 0)
-escreval(resultado)
+idade <- 15
+se (idade >= 18) entao
+escreval("Adulto")
+senao
+se (idade >= 12) entao
+escreval("Adolescente")
+senao
+escreval("Crianca")
+fimse
+fimse
 fimalgoritmo

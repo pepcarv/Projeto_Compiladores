@@ -1,15 +1,6 @@
-algoritmo "Teste13"
-funcao eh_par(v: inteiro): logico
-inicio
-se (v MOD 2 = 0) entao
-retorne verdadeiro
-senao
-retorne falso
-fimse
-fimfuncao
+algoritmo "ErroLexico"
 var
-num: inteiro
+x: inteiro
 inicio
-num <- 14
-escreval("Numero: ", num, " par? ", eh_par(num))
+x <- 10 @ 2
 fimalgoritmo
