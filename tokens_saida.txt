@@ -1,0 +1,24 @@
+1# algoritmo
+1# STRING | Hello World
+2# var
+4# IDENTIFICADOR | 3
+4# DELIMITADOR | :
+4# caractere
+5# inicio
+6# escreva
+6# DELIMITADOR | (
+6# STRING | Nome: 
+6# DELIMITADOR | )
+7# leia
+7# DELIMITADOR | (
+7# IDENTIFICADOR | 3
+7# DELIMITADOR | )
+8# escreval
+8# DELIMITADOR | (
+8# STRING | Ola, 
+8# DELIMITADOR | ,
+8# IDENTIFICADOR | 3
+8# DELIMITADOR | ,
+8# STRING | !
+8# DELIMITADOR | )
+9# fimalgoritmo
