@@ -1,18 +1,13 @@
-algoritmo "Teste04"
+algoritmo "Teste03"
 var
 a, b: inteiro
-resultado: logico
 inicio
 a <- 10
-b <- 20
-escreval(a = b)
-escreval(a <> b)
-escreval(a < b)
-escreval(a <= b)
-escreval(a > b)
-escreval(a >= b)
-resultado <- (a < b) E (b >= 20)
-escreval(resultado)
-resultado <- (a = 10) OU (b = 0)
-escreval(resultado)
+b <- 3
+escreval(a + b)
+escreval(a - b)
+escreval(a * b)
+escreval(a / b)
+escreval(a \ b)
+escreval(a MOD b)
 fimalgoritmo

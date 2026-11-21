@@ -1,11 +1,9 @@
-algoritmo "Teste09"
+algoritmo "Hello World"
 var
-notas: vetor[1..4] de real
-i: inteiro
+//oioioioi
+nome: caractere
 inicio
-notas[1] <- 7.5
-notas[2] <- 8.0
-leia(notas[3])
-i <- 2
-escreval(notas[i])
+escreva("Nome: ")
+leia(nome)
+escreval("Ola, ", nome, "!")
 fimalgoritmo

@@ -1,14 +1,7 @@
-algoritmo "Teste02"
+algoritmo "Teste01"
 var
-nome, sobrenome: caractere
-idade: inteiro
-altura: real
-ativo: logico
 inicio
-nome <- "Mateus"
-idade <- 20
-altura <- 1.75
-ativo <- verdadeiro
-leia(sobrenome)
-escreval(nome, sobrenome, idade, altura, ativo)
+// comentario deve ser ignorado
+escreva("Ola, ")
+escreval("mundo!")
 fimalgoritmo

@@ -1,8 +1,8 @@
-algoritmo "Teste07"
+algoritmo "Teste06"
 var
 i: inteiro
 inicio
-para i de 10 ate 0 passo -2 faca
+para i de 1 ate 5 faca
 escreval(i)
 fimpara
 fimalgoritmo

@@ -1,8 +1,8 @@
-algoritmo "Teste11"
-procedimento mostrar_erro(mensagem: caractere)
+algoritmo "Teste10"
+procedimento linha_decorativa
 inicio
-escreval("ERRO: ", mensagem)
+escreval("----------------")
 fimprocedimento
 inicio
-mostrar_erro("Falha no sistema")
+linha_decorativa
 fimalgoritmo

@@ -1,15 +1,11 @@
-algoritmo "Teste13"
-funcao eh_par(v: inteiro): logico
+algoritmo "Teste12"
+funcao somar(a: inteiro, b: inteiro): inteiro
 inicio
-se (v MOD 2 = 0) entao
-retorne verdadeiro
-senao
-retorne falso
-fimse
+retorne a + b
 fimfuncao
 var
-num: inteiro
+resultado: inteiro
 inicio
-num <- 14
-escreval("Numero: ", num, " par? ", eh_par(num))
+resultado <- somar(10, 5)
+escreval(resultado)
 fimalgoritmo

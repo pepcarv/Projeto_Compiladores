@@ -1,11 +1,8 @@
-algoritmo "Teste12"
-funcao somar(a: inteiro, b: inteiro): inteiro
+algoritmo "Teste11"
+procedimento mostrar_erro(mensagem: caractere)
 inicio
-retorne a + b
-fimfuncao
-var
-resultado: inteiro
+escreval("ERRO: ", mensagem)
+fimprocedimento
 inicio
-resultado <- somar(10, 5)
-escreval(resultado)
+mostrar_erro("Falha no sistema")
 fimalgoritmo

@@ -1,8 +1,15 @@
-algoritmo "Teste06"
+algoritmo "Teste05"
 var
-i: inteiro
+idade: inteiro
 inicio
-para i de 1 ate 5 faca
-escreval(i)
-fimpara
+idade <- 15
+se (idade >= 18) entao
+escreval("Adulto")
+senao
+se (idade >= 12) entao
+escreval("Adolescente")
+senao
+escreval("Crianca")
+fimse
+fimse
 fimalgoritmo

@@ -1,24 +1,145 @@
-CC = gcc
-CFLAGS = -std=c11 -Wall -Wextra -Werror -pedantic -g -Og
-SOURCE = compilador.c
+=============================================================================
+COMPILADORES - PROJETO - ETAPA 1: Gramatica Livre de Contexto
+Linguagem: MiniVisualg (Visualg Simplificado)
+=============================================================================
 
-ifeq ($(OS),Windows_NT)
-TARGET = compilador.exe
-PYTHON = python
-else
-TARGET = compilador
-PYTHON = python3
-endif
+Integrantes do grupo:
+  - Mateus Ribeiro Cerqueira - 10443901
+  - Pedro Henrique Carvalho Pereira - 10418861
 
-.PHONY: all build test clean
-all: build
-build: $(TARGET)
+-----------------------------------------------------------------------------
+1. EXPRESSOES REGULARES
+-----------------------------------------------------------------------------
+A partir dos exemplos do Anexo I, definir as expressoes regulares para cada
+categoria de token abaixo (preencher com a notacao formal escolhida pelo
+grupo, ex: ER classica ou notacao tipo regex):
 
-$(TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) $(SOURCE) -o $(TARGET)
+IDENTIFICADOR
+  [a-zA-Z_][a-zA-Z0-9_]*
+  
+NUMERO INTEIRO
+  [0-9]+
 
-test: build
-	$(PYTHON) testes/rodar_testes.py ./$(TARGET)
+NUMERO REAL
+  [0-9]+\.[0-9]+
 
-clean:
-	$(PYTHON) -c "import os; [os.remove(f) for f in ['compilador', 'compilador.exe', 'tokens_saida.txt', 'tabela_simbolos.txt', 'resultado_testes.txt'] if os.path.exists(f)]"
+CADEIA DE CARACTERES (string literal)
+  "[^"\n]*"
+
+OPERADORES RELACIONAIS
+  = | <> | < | <= | > | >=
+
+OPERADORES ARITMETICOS
+  \+  |  \-  |  \*  |  /  |  \\  |  mod  |  MOD
+
+OPERADORES LOGICOS
+  E | OU
+
+OPERADOR DE ATRIBUICAO
+  <-
+
+PALAVRAS RESERVADAS (keywords)
+  algoritmo, var, inicio, fimalgoritmo, caractere, inteiro, real, logico,
+  vetor, de, escreva, escreval, leia, se, entao, senao, fimse, para, ate,
+  passo, faca, fimpara, enquanto, fimenquanto, procedimento,
+  fimprocedimento, funcao, fimfuncao, retorne, verdadeiro, falso, E, OU,
+  mod, MOD
+
+DELIMITADORES / PONTUACAO
+  (  )  [  ]  ,  :  ..
+
+COMENTARIOS
+  //[^\n]*
+
+-----------------------------------------------------------------------------
+2. GRAMATICA LIVRE DE CONTEXTO (GLC)
+-----------------------------------------------------------------------------
+Construir a GLC correspondente as expressoes regulares acima, cobrindo TODAS
+as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
+(preencher as producoes de cada um):
+
+<programa> ::=
+  "algoritmo" <string> "var" <declaracoes> <subrotinas>
+  "inicio" <bloco_comandos> "fimalgoritmo"
+
+<declaracoes> ::=
+  { <lista_identificadores> ":" <tipo> }
+  (pode ser vazio -- ver exemplo "PrimeiroPasso")
+
+<lista_identificadores> ::= ID { "," ID }
+
+<tipo> ::=
+  "caractere" | "inteiro" | "real" | "logico"
+  | "vetor" "[" NUM_INT ".." NUM_INT "]" "de" <tipo>
+
+<subrotinas> ::= { <declaracao_procedimento> | <declaracao_funcao> }
+
+<declaracao_procedimento> ::=
+  "procedimento" ID [ "(" <lista_parametros> ")" ] [ "var" <declaracoes> ]
+  "inicio" <bloco_comandos> "fimprocedimento"
+  (procedimento sem parametros NAO usa parenteses, nem na declaracao nem
+  na chamada)
+
+<declaracao_funcao> ::=
+  "funcao" ID "(" <lista_parametros> ")" ":" <tipo> [ "var" <declaracoes> ]
+  "inicio" <bloco_comandos> "fimfuncao"
+
+<lista_parametros> ::= [ ID ":" <tipo> { "," ID ":" <tipo> } ]
+
+<bloco_comandos> ::= { <comando> }
+
+<comando> ::=
+  <atribuicao_ou_chamada>
+  | <leitura>
+  | <escrita>
+  | <condicional>
+  | <repeticao_para>
+  | <repeticao_enquanto>
+  | <retorno>
+
+<atribuicao_ou_chamada> ::=
+  ID "[" <expressao> "]" "<-" <expressao>
+  | ID "<-" <expressao>
+  | ID "(" <lista_argumentos> ")"
+  | ID
+  (as tres ultimas formas cobrem: chamada de procedimento/funcao com
+  argumentos e chamada de procedimento sem parametros, ex: linha_decorativa)
+
+<leitura> ::= "leia" "(" ID [ "[" <expressao> "]" ] ")"
+
+<escrita> ::=
+  ( "escreva" | "escreval" ) "(" <expressao> { "," <expressao> } ")"
+
+<condicional> ::=
+  "se" "(" <expressao> ")" "entao" <bloco_comandos>
+  [ "senao" <bloco_comandos> ] "fimse"
+
+<repeticao_para> ::=
+  "para" ID "de" <expressao> "ate" <expressao> [ "passo" <expressao> ]
+  "faca" <bloco_comandos> "fimpara"
+
+<repeticao_enquanto> ::=
+  "enquanto" "(" <expressao> ")" "faca" <bloco_comandos> "fimenquanto"
+
+<retorno> ::= "retorne" <expressao>
+
+<lista_argumentos> ::= [ <expressao> { "," <expressao> } ]
+
+<expressao> ::= <expr_logica>
+
+<expr_logica> ::= <expr_relacional> { ( "E" | "OU" ) <expr_relacional> }
+
+<expr_relacional> ::=
+  <expr_aritmetica> { <op_relacional> <expr_aritmetica> }
+
+<op_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
+
+<expr_aritmetica> ::= <termo> { ( "+" | "-" ) <termo> }
+
+<termo> ::= <fator> { ( "*" | "/" | "\" | "mod" | "MOD" ) <fator> }
+
+<fator> ::=
+  NUM_INT | NUM_FLOAT | STRING | "verdadeiro" | "falso"
+  | ID [ "[" <expressao> "]" | "(" <lista_argumentos> ")" ]
+  | "(" <expressao> ")"
+  | "-" <fator>
