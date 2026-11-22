@@ -1,8 +1,0 @@
-algoritmo "ProcedimentoSemParametros"
-procedimento mostrar()
-inicio
-escreval("oi")
-fimprocedimento
-inicio
-mostrar()
-fimalgoritmo

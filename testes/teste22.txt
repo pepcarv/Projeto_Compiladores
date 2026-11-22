@@ -1,9 +1,0 @@
-algoritmo "Reuso"
-var
-nome, outro: caractere
-inicio
-nome <- "Pedro"
-outro <- "Pedro"
-nome <- outro
-escreval(nome,nome,"Pedro")
-fimalgoritmo

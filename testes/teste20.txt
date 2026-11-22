@@ -1,6 +1,0 @@
-algoritmo "NumeroInvalido"
-var
-x: inteiro
-inicio
-x<-12abc
-fimalgoritmo
