@@ -1,24 +1,28 @@
 /* =====================================================================
- * mepa.c  -  Interpretador MEPA em um unico arquivo
- *
- * Base: InterprMEPA-2.0, de Bruno Muller Junior (Set/2020), Licenca GNU GPL.
- * Os modulos MV_mepa, interface_usuario e executaMepa foram reunidos aqui
- * SEM alteracao de comportamento. Falta completar o leitor de arquivos
- * MEPA em C (secao LEITOR), que substituira leMepa.l e leMepa.y
- * para dispensar flex e bison.
- *
- * Compilar: gcc -g -Og -Wall mepa.c -o mepa
- * Executar: ./mepa -r -i mepa_cod.txt      (-r = nao interativo)
- *
- * Os TODOs abaixo indicam as partes que ainda faltam implementar.
- *
- * TODO[M-06]: o codigo da professora, reunido sem mudancas, gera estes avisos
- *   com -Wall (nenhum e erro): variaveis nao usadas (k, i, linha, linha_out),
- *   retorno de scanf ignorado, 'rtpr' fora do switch que so imprime o estado
- *   interativo e 'cmd' possivelmente nao inicializada em executaMepa()
- *   (em modo -r ela e lida no while sem ter sido atribuida; inicializar com
- *   'proximo'). Corrigir somente o necessario para compilar sem avisos.
- * ===================================================================== */
+mepa.c  -  Interpretador MEPA em um unico arquivo
+
+URLs - MEPA
+
+https://www.inf.ufpr.br/bmuller/assets/ci1211/Recursos/InterprMEPA-2.0.tar.bz2
+ 
+Base: InterprMEPA-2.0, de Bruno Muller Junior (Set/2020), Licenca GNU GPL.
+Os modulos MV_mepa, interface_usuario e executaMepa foram reunidos aqui
+SEM alteracao de comportamento. Falta completar o leitor de arquivos
+MEPA em C (secao LEITOR), que substituira leMepa.l e leMepa.y
+para dispensar flex e bison.
+
+Compilar: gcc -g -Og -Wall mepa.c -o mepa
+Executar: ./mepa -r -i mepa_cod.txt      (-r = nao interativo)
+
+Os TODOs abaixo indicam as partes que ainda faltam implementar.
+
+TODO[M-06]: o codigo da professora, reunido sem mudancas, gera estes avisos
+  com -Wall (nenhum e erro): variaveis nao usadas (k, i, linha, linha_out),
+  retorno de scanf ignorado, 'rtpr' fora do switch que so imprime o estado
+  interativo e 'cmd' possivelmente nao inicializada em executaMepa()
+  (em modo -r ela e lida no while sem ter sido atribuida; inicializar com
+  'proximo'). Corrigir somente o necessario para compilar sem avisos.
+===================================================================== */
 
 #include <stdio.h>
 #include <stdlib.h>
