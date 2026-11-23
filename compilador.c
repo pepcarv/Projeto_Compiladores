@@ -19,6 +19,12 @@ Execucao:
 #include <string.h>
 #include <ctype.h>
 
+// codigo de retorno quando o compilador encerra por erro lexico, sintatico ou semantico.
+// o enunciado pede que o programa finalize com retorno 0 apos a execucao (retorno != 0 e
+// penalizado), entao o erro e informado na tela e o processo termina com 0. se o professor
+// preferir retorno diferente de 0 nos erros, basta trocar este valor por 1.
+#define SAIDA_COM_ERRO 0
+
 /*
 SECAO 1: TIPOS E ESTRUTURAS (Figura 2 do descritivo - "Estrutura do Token
 com a Union de Atributos")
@@ -207,6 +213,9 @@ typedef struct {
   int atribuida; // recebeu valor (<- ou leia)
   int usada; // foi lida em expressao, escreva, condicao, indice...
   int linhaAtrib; // linha da 1a atribuicao (pro erro de variavel nao usada)
+  int rotina; // rotina dona da variavel (-1 = global do programa principal)
+  int idxParam; // posicao na lista de parametros (so quando ehParam)
+  int offLocal; // deslocamento entre as locais da rotina (so variavel local)
 } InfoVar;
 
 static InfoVar infoVar[MAX_VARS];
@@ -228,6 +237,8 @@ typedef struct {
   char nomeParam[MAX_PARAMS][16];
   int rotulo; // rotulo MEPA da entrada da rotina
   int rotuloFim; // rotulo do RTPR (retorne pula pra ca)
+  int tamLocais; // posicoes ocupadas pelas variaveis locais no quadro de ativacao
+  int usaTmp; // 1 = usa os temporarios do quadro ($rv1, $rv2, $rma, $rmb)
 } InfoRotina;
 
 
@@ -359,7 +370,7 @@ void erroSemantico(int linha, const char *motivo, const char *nome) {
   printf("ERRO SEMANTICO na linha %d: %s", linha, motivo);
   if (nome[0] != '\0') printf(" '%s'", nome);
   printf("\n");
-  exit(1);
+  exit(SAIDA_COM_ERRO);
 }
 
 
@@ -417,6 +428,23 @@ static void marca_sem_mepa(const char *motivo) {
   }
 }
 
+// espia o proximo caractere que nao seja espaco nem comentario // depois do lookahead
+// (o lookahead ja foi lido, entao bufPos aponta pro que vem logo depois dele).
+// devolve '\0' se o arquivo acabar. nao consome nada.
+static char proximo_char_util(void) {
+  long pos = bufPos;
+  while (pos < bufLen) {
+    if (isspace((unsigned char) buffer[pos])) {
+      pos++;
+    } else if (buffer[pos] == '/' && pos + 1 < bufLen && buffer[pos + 1] == '/') {
+      while (pos < bufLen && buffer[pos] != '\n') pos++;
+    } else {
+      return buffer[pos];
+    }
+  }
+  return '\0';
+}
+
 
 
 
@@ -430,18 +458,26 @@ static TNo *acha_no(const char *nome) {
   return NULL;
 }
 
-// chama a busca_tabela_simbolos() do enunciado (ela da o erro se nao existir) e devolve o no
-static TNo *no_declarado(const char *nome) {
-  busca_tabela_simbolos(nome);
-  return acha_no(nome);
-}
-
 static InfoVar *busca_info(TNo *no) {
   int i;
   for (i = 0; i < nVars; i++) {
     if (infoVar[i].no == no) return &infoVar[i];
   }
   return &infoVar[0]; // nao deve acontecer, todo no tem info
+}
+
+// chama a busca_tabela_simbolos() do enunciado (ela da o erro se nao existir) e devolve o no.
+// parametro/local de uma rotina so existe dentro dela: fora, o quadro de ativacao nao existe
+static TNo *no_declarado(const char *nome) {
+  TNo *no;
+  InfoVar *info;
+  busca_tabela_simbolos(nome);
+  no = acha_no(nome);
+  info = busca_info(no);
+  if (info->rotina >= 0 && info->rotina != rotinaAtual) {
+    erroSemantico(linhaUltimoId, "variavel local de uma rotina usada fora dela", nome);
+  }
+  return no;
 }
 
 static int busca_rotina(const char *nome) {
@@ -480,7 +516,6 @@ static void insere_variavel(const char *nome, int linha, int tipo, int ehVetor, 
   if (ehVetor) strcpy(novo->tipo, "v_");
   strcat(novo->tipo, tipo_curto(tipo));
   novo->prox = NULL;
-  proxEndereco = proxEndereco + tam;
 
   if (minitabela == NULL) minitabela = novo;
   else fimMinitabela->prox = novo;
@@ -495,6 +530,17 @@ static void insere_variavel(const char *nome, int linha, int tipo, int ehVetor, 
   infoVar[nVars].atribuida = 0;
   infoVar[nVars].usada = 0;
   infoVar[nVars].linhaAtrib = linha;
+  infoVar[nVars].rotina = rotinaAtual;
+  infoVar[nVars].idxParam = 0;
+  infoVar[nVars].offLocal = 0;
+  if (rotinaAtual < 0) {
+    proxEndereco = proxEndereco + tam; // global: ocupa tam posicoes da area global da MEPA
+  } else if (ehParam) {
+    infoVar[nVars].idxParam = rotinas[rotinaAtual].nParam; // fica no quadro da rotina (pilha)
+  } else {
+    infoVar[nVars].offLocal = rotinas[rotinaAtual].tamLocais; // local: tambem no quadro
+    rotinas[rotinaAtual].tamLocais = rotinas[rotinaAtual].tamLocais + tam;
+  }
   nVars++;
 }
 
@@ -535,6 +581,8 @@ static int registra_rotina(const char *nome, int linha, int ehFuncao) {
   rotinas[id].ehFuncao = ehFuncao;
   rotinas[id].tipoRet = TIPO_NENHUM;
   rotinas[id].nParam = 0;
+  rotinas[id].tamLocais = 0;
+  rotinas[id].usaTmp = 0;
   rotinas[id].rotulo = rot;
   rotinas[id].rotuloFim = rotFim;
   nRotinas++;
@@ -597,33 +645,64 @@ static void emite_rotulo(int rot) {
 }
 
 // retorno da funcao fica num slot proprio: "$ret_nome" (o $ nao existe em nome de var do usuario)
+// texto do escreva("...") nao tem instrucao MEPA: vai pro mepa_cod.txt como linha de comentario
+// (o leitor da mepa ignora linhas que comecam com ';'). corta em 80 caracteres pra caber na linha
+static void emite_comentario_texto(const char *texto) {
+  char buf[96];
+  snprintf(buf, sizeof(buf), "; escreva: %.80s", texto);
+  emite(buf);
+}
+
 static void emite_ret(const char *instr, int idRot) {
   char buf[96];
   snprintf(buf, sizeof(buf), "%s $ret_%s", instr, rotinas[idRot].nome);
   emite(buf);
 }
 
+// temporarios: no programa principal ficam na area global ($tv1...); dentro de uma rotina
+// ficam no quadro dela ($rv1...). assim uma chamada de funcao no meio de uma expressao (ou a
+// recursao) nao sobrescreve o temporario de quem chamou.
+// qual: 0 = vetor (leitura), 1 = vetor (atribuicao), 2 = mod (a), 3 = mod (b)
+static const char *nome_tmp(int qual) {
+  static const char *principal[4] = {"$tv1", "$tv2", "$tma", "$tmb"};
+  static const char *quadro[4] = {"$rv1", "$rv2", "$rma", "$rmb"};
+  if (rotinaAtual >= 0) return quadro[qual];
+  return principal[qual];
+}
+
+static void marca_tmp_vet(void) {
+  if (rotinaAtual >= 0) rotinas[rotinaAtual].usaTmp = 1;
+  else usaTmpVet = 1;
+}
+
+static void marca_tmp_mod(void) {
+  if (rotinaAtual >= 0) rotinas[rotinaAtual].usaTmp = 1;
+  else usaTmpMod = 1;
+}
+
 // a MEPA nao tem MOD direto: a mod b = a - (a / b) * b. os dois operandos ja estao na pilha,
-// entao guarda nos temporarios $tma/$tmb pra poder usar cada um duas vezes
+// entao guarda nos temporarios pra poder usar cada um duas vezes
 static void gera_mod(void) {
-  usaTmpMod = 1;
-  emite_nome("ARMZ", "$tmb");
-  emite_nome("ARMZ", "$tma");
-  emite_nome("CRVL", "$tma");
-  emite_nome("CRVL", "$tma");
-  emite_nome("CRVL", "$tmb");
+  marca_tmp_mod();
+  emite_nome("ARMZ", nome_tmp(3));
+  emite_nome("ARMZ", nome_tmp(2));
+  emite_nome("CRVL", nome_tmp(2));
+  emite_nome("CRVL", nome_tmp(2));
+  emite_nome("CRVL", nome_tmp(3));
   emite("DIVI");
-  emite_nome("CRVL", "$tmb");
+  emite_nome("CRVL", nome_tmp(3));
   emite("MULT");
   emite("SUBT");
 }
 
-// chamada de rotina: (args) opcionais + passagem por valor + CHPR
-// os argumentos vao pra pilha em ordem e depois sao guardados (de tras pra frente)
-// nas posicoes dos parametros. param = variavel normal da minitabela (alocacao estatica).
+// chamada de rotina (quadro de ativacao na pilha, passagem por valor):
+//   funcao: AMEM 1 antes dos argumentos reserva o espaco do valor de retorno
+//   argumentos: ficam na pilha, em ordem; a rotina le cada um pelo deslocamento negativo
+//   CHPR guarda o retorno; o RTPR da rotina desempilha os argumentos e, no caso de funcao,
+//   deixa so o valor de retorno no topo (ja pronto pra expressao que chamou)
 static void chama_rotina(int idRot, int linha) {
-  int i;
   char buf[96];
+  if (rotinas[idRot].ehFuncao == 1) emite_num("AMEM", 1);
   if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "(") == 0) {
     // fix do procedimento sem params (correcao do anexo 1)
     if (rotinas[idRot].ehFuncao == 0 && rotinas[idRot].nParam == 0) erroSintatico(lookahead.line, lookahead);
@@ -633,10 +712,39 @@ static void chama_rotina(int idRot, int linha) {
   } else if (rotinas[idRot].nParam != 0) {
     erroSemantico(linha, "numero de argumentos incompativel na chamada de", rotinas[idRot].nome);
   }
-  for (i = rotinas[idRot].nParam - 1; i >= 0; i--) {
-    emite_nome("ARMZ", rotinas[idRot].nomeParam[i]);
-  }
   snprintf(buf, sizeof(buf), "CHPR L%d, 0", rotinas[idRot].rotulo);
+  emite(buf);
+}
+
+// abertura da rotina: rotulo, ENPR e reserva do quadro (AMEM). so e chamada depois dos
+// parametros e do var (que nao geram codigo). o tamanho do AMEM so e conhecido no fim do corpo
+// (temporarios), entao guarda a posicao dele e emite_saida_rotina() acerta
+static int emite_entrada_rotina(int idRot) {
+  int idxAmem;
+  emite_rotulo(rotinas[idRot].rotulo);
+  emite_num("ENPR", 1);
+  idxAmem = nCod;
+  emite_num("AMEM", 0);
+  return idxAmem;
+}
+
+// fechamento: acerta o AMEM (ou tira, se nao ha locais), rotulo do retorne, DMEM e RTPR 1, n
+// (n = quantidade de parametros, que o RTPR desempilha)
+static void emite_saida_rotina(int idRot, int idxAmem) {
+  char buf[96];
+  int total = rotinas[idRot].tamLocais;
+  if (rotinas[idRot].usaTmp == 1) total = total + 4;
+  if (idxAmem < nCod) {
+    if (total > 0) {
+      snprintf(codigo[idxAmem], sizeof(codigo[idxAmem]), "AMEM %d", total);
+    } else {
+      memmove(codigo[idxAmem], codigo[idxAmem + 1], (size_t) (nCod - idxAmem - 1) * sizeof(codigo[0]));
+      nCod--;
+    }
+  }
+  emite_rotulo(rotinas[idRot].rotuloFim);
+  if (total > 0) emite_num("DMEM", total);
+  snprintf(buf, sizeof(buf), "RTPR 1, %d", rotinas[idRot].nParam);
   emite(buf);
 }
 
@@ -1082,7 +1190,7 @@ void erroLexico(int linha, const char *sequencia) {
     fprintf(arqSaida, "ERRO LEXICO na linha %d: sequencia invalida \"%s\"\n", linha, sequencia);
     fclose(arqSaida);
   }
-  exit(1);
+  exit(SAIDA_COM_ERRO);
 }
 
 /*
@@ -1246,20 +1354,8 @@ void analisar_declaracoes(void) {
   }
 
   // correcao das palavras reservadas (tavam dando erro sint - devem dar erro sem)
-  if (lookahead.type == TOKEN_KEYWORD) {
-    long pos = bufPos;
-    while (pos < bufLen) {
-      if (isspace((unsigned char) buffer[pos])) {
-        pos++;
-      } else if (buffer[pos] == '/' && pos + 1 < bufLen && buffer[pos + 1] == '/') {
-        while (pos < bufLen && buffer[pos] != '\n') pos++;
-      } else {
-        break;
-      }
-    }
-    if (pos < bufLen && buffer[pos] == ':') {
-      erroSemantico(lookahead.line, "palavra reservada nao pode ser nome de variavel", symtab[lookahead.attribute.table_index]);
-    }
+  if (lookahead.type == TOKEN_KEYWORD && proximo_char_util() == ':') {
+    erroSemantico(lookahead.line, "palavra reservada nao pode ser nome de variavel", symtab[lookahead.attribute.table_index]);
   }
 }
 /*
@@ -1384,13 +1480,13 @@ void analisar_comando(void) {
       info = busca_info(no);
       if (info->ehVetor == 0) erroSemantico(linha, "identificador nao e um vetor", nome);
       gera_endereco_vetor(info, nome, linha); // endereco do elemento fica no topo da pilha
-      usaTmpVet = 1;
-      emite_nome("ARMZ", "$tv2"); // guarda o endereco ($tv2 e so das atribuicoes, $tv1 e das leituras)
+      marca_tmp_vet();
+      emite_nome("ARMZ", nome_tmp(1)); // guarda o endereco (tmp 1 = atribuicoes, tmp 0 = leituras)
       consome(TOKEN_ASSIGN, NULL);
       tipoExpr = analisar_expressao();
       if (!tipo_atribuivel(info->tipo, tipoExpr)) erro_tipos(linha, "atribuicao", info->tipo, tipoExpr);
       marca_atribuida(info, linha);
-      emite_nome("ARMI", "$tv2");
+      emite_nome("ARMI", nome_tmp(1));
     } else {
       // chamada de procedimento (com parenteses, ou sem se nao tiver parametro)
       idRot = busca_rotina(nome);
@@ -1426,9 +1522,9 @@ void analisar_leitura(void) {
     if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "[") == 0) {
       if (info->ehVetor == 0) erroSemantico(linha, "identificador nao e um vetor", nome);
       gera_endereco_vetor(info, nome, linha);
-      usaTmpVet = 1;
-      emite_nome("ARMZ", "$tv2");
-      emite_nome("ARMI", "$tv2");
+      marca_tmp_vet();
+      emite_nome("ARMZ", nome_tmp(1));
+      emite_nome("ARMI", nome_tmp(1));
     } else {
       if (info->ehVetor) erroSemantico(linha, "vetor precisa de indice", nome);
       emite_nome("ARMZ", nome);
@@ -1466,7 +1562,7 @@ TODO (FASE 2): analisar_lista_argumentos().
 
 void analisar_lista_argumentos(int idRot) {
     int n = 0;
-    int linha, tipo;
+    int linha, tipo, soTexto;
 
     // chamada sem argumentos f() (so pra rotina, no escreva continua dando erro sintatico)
     if (idRot >= 0 && lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], ")") == 0) {
@@ -1475,9 +1571,19 @@ void analisar_lista_argumentos(int idRot) {
     }
     for (;;) {
       linha = lookahead.line;
-      tipo = analisar_expressao();
+      soTexto = 0;
+      if (idRot < 0 && lookahead.type == TOKEN_STRING && (proximo_char_util() == ',' || proximo_char_util() == ')')) {
+        // texto sozinho no escreva: a MEPA so imprime inteiros, entao nao empilha nada nem gera
+        // IMPR. o texto fica de comentario no mepa_cod.txt (o leComandosMepa ignora as linhas ';')
+        emite_comentario_texto(symtab[lookahead.attribute.table_index]);
+        consome(TOKEN_STRING, NULL);
+        tipo = TIPO_CHAR;
+        soTexto = 1;
+      } else {
+        tipo = analisar_expressao();
+      }
       if (idRot < 0) {
-        emite("IMPR"); // imprime o valor que a expressao deixou na pilha
+        if (soTexto == 0) emite("IMPR"); // imprime o valor que a expressao deixou na pilha
       } else {
         // confere quantidade e tipo de cada argumento
         if (n >= rotinas[idRot].nParam) erroSemantico(linha, "numero de argumentos incompativel na chamada de", rotinas[idRot].nome);
@@ -1740,7 +1846,7 @@ int analisar_fator(void) {
         erroSemantico(linha, "chamada de funcao precisa de parenteses", nome);
       }
       chama_rotina(idRot, linha); // daqui o fluxo vai pra chama_rotina() -> analisar_lista_argumentos()
-      emite_ret("CRVL", idRot); // valor de retorno fica no slot da funcao, empilha ele
+      // o valor de retorno ja ficou no topo da pilha (reservado pelo AMEM 1 da chamada)
       tipo = rotinas[idRot].tipoRet;
     } else {
       no = no_declarado(nome);
@@ -1750,9 +1856,9 @@ int analisar_fator(void) {
       if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "[") == 0) {
         if (info->ehVetor == 0) erroSemantico(linha, "identificador nao e um vetor", nome);
         gera_endereco_vetor(info, nome, linha);
-        usaTmpVet = 1;
-        emite_nome("ARMZ", "$tv1"); // CRVI precisa do endereco guardado numa variavel
-        emite_nome("CRVI", "$tv1");
+        marca_tmp_vet();
+        emite_nome("ARMZ", nome_tmp(0)); // CRVI precisa do endereco guardado numa variavel
+        emite_nome("CRVI", nome_tmp(0));
       } else {
         if (info->ehVetor) erroSemantico(linha, "vetor precisa de indice", nome);
         emite_nome("CRVL", nome);
@@ -1925,14 +2031,12 @@ TODO (FASE 2): analisar_declaracao_procedimento().
 
 void analisar_declaracao_procedimento(void) {
   char nome[256];
-  int linha, idRot;
+  int linha, idRot, idxAmem;
   consome(TOKEN_KEYWORD, "procedimento");
   consome_id(nome);
   linha = linhaUltimoId;
   idRot = registra_rotina(nome, linha, 0); // cadastra antes do corpo (recursao direta)
   rotinaAtual = idRot;
-  emite_rotulo(rotinas[idRot].rotulo);
-  emite_num("ENPR", 1);
   if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "(") == 0) {
     consome(TOKEN_DELIM, "(");
     // fix do procedimento sem params (correcao do anexo 1)
@@ -1945,11 +2049,11 @@ void analisar_declaracao_procedimento(void) {
     consome(TOKEN_KEYWORD, "var");
     analisar_declaracoes();
   }
+  idxAmem = emite_entrada_rotina(idRot); // rotulo, ENPR e AMEM (quadro de ativacao)
   consome(TOKEN_KEYWORD, "inicio");
   analisar_bloco_comandos();
   consome(TOKEN_KEYWORD, "fimprocedimento");
-  emite_rotulo(rotinas[idRot].rotuloFim);
-  emite("RTPR 1, 0"); // nao tem variavel local na pilha (alocacao estatica), entao n = 0
+  emite_saida_rotina(idRot, idxAmem); // rotulo fim, DMEM e RTPR 1, n
   rotinaAtual = -1;
 }
 /*
@@ -1994,14 +2098,12 @@ TODO (FASE 2): analisar_declaracao_funcao().
 
 void analisar_declaracao_funcao(void) {
   char nome[256];
-  int linha, idRot, tipo;
+  int linha, idRot, tipo, idxAmem;
   consome(TOKEN_KEYWORD, "funcao");
   consome_id(nome);
   linha = linhaUltimoId;
   idRot = registra_rotina(nome, linha, 1); // cadastra antes do corpo (recursao direta)
   rotinaAtual = idRot;
-  emite_rotulo(rotinas[idRot].rotulo);
-  emite_num("ENPR", 1);
   consome(TOKEN_DELIM, "(");
   analisar_lista_parametros();
   consome(TOKEN_DELIM, ")");
@@ -2014,11 +2116,11 @@ void analisar_declaracao_funcao(void) {
     consome(TOKEN_KEYWORD, "var");
     analisar_declaracoes();
   }
+  idxAmem = emite_entrada_rotina(idRot); // rotulo, ENPR e AMEM (quadro de ativacao)
   consome(TOKEN_KEYWORD, "inicio");
   analisar_bloco_comandos();
   consome(TOKEN_KEYWORD, "fimfuncao");
-  emite_rotulo(rotinas[idRot].rotuloFim);
-  emite("RTPR 1, 0"); // o retorne ja guardou o valor no slot $ret_nome
+  emite_saida_rotina(idRot, idxAmem); // o retorne ja guardou o valor em $ret_nome (quadro)
   rotinaAtual = -1;
 }
 
@@ -2044,38 +2146,42 @@ void erroSintatico(int linha, Token tokenIncorreto) {
   } else {
     printf("%s\n", symtab[tokenIncorreto.attribute.table_index]);
   }
-  exit(1);
+  exit(SAIDA_COM_ERRO);
 }
 
 /*
 grava o mepa_cod.txt. so e chamada quando nao teve erro (lexico, sintatico ou semantico).
-topo do arquivo: INPP, AMEM (total de posicoes) e DSVS pro bloco principal; fim: DMEM e PARA.
+topo do arquivo: INPP, AMEM (total da area global) e DSVS pro bloco principal; fim: DMEM e PARA.
 
-ADAPTACAO DA MEPA (o enunciado da parte 3 pede variaveis referenciadas pelo NOME no txt):
-as instrucoes saem como "CRVL a" / "ARMZ b", e o topo do arquivo tem linhas de comentario
-"; VAR nome endereco". o leComandosMepa() do mepa.c deve ler essas linhas e troca nome por
-"nivel 0, endereco". as 34 instrucoes da mepa nao mudam.
+ADAPTACAO DA MEPA (o enunciado pede variaveis referenciadas pelo NOME no txt):
+as instrucoes saem como "CRVL a" / "ARMZ b" e o topo do arquivo tem comentarios
+"; VAR nome desloc [nivel]". o leComandosMepa() do mepa.c le essas linhas e troca o nome por
+"nivel, desloc" (nivel omitido = 0). as 34 instrucoes da mepa nao mudam.
+  nivel 0 = area global: variaveis do programa principal, a partir da posicao 0
+  nivel 1 = quadro da rotina em execucao (D[1] aponta pro 1o local do quadro, pilha):
+     locais     : 0, 1, 2... (depois dos temporarios $rv1.. se a rotina usa)
+     parametros : posicao - (n + 3)   (n = quantidade de parametros)
+     retorno    : $ret_nome = -(n + 4) (so funcao)
 */
 static void grava_mepa(void) {
   FILE *arq;
   TNo *no;
-  int i, extra, total, base;
+  InfoVar *info;
+  int i, total, base, desloc;
   int posMepa = 0;
   int iVar = 0;
+  int algumaTmpRotina = 0;
 
   if (semMepa == 1) {
-    //fprintf(stderr, "AVISO: %s; mepa_cod.txt nao foi gerado\n", motivoSemMepa);
+    fprintf(stderr, "AVISO: %s; mepa_cod.txt nao foi gerado (a analise terminou sem erros)\n", motivoSemMepa);
     return;
   }
 
-  // posicoes escondidas depois das variaveis: retorno de cada funcao e temporarios
-  extra = 0;
-  for (i = 0; i < nRotinas; i++) {
-    if (rotinas[i].ehFuncao == 1) extra++;
-  }
-  if (usaTmpVet == 1) extra = extra + 2;
-  if (usaTmpMod == 1) extra = extra + 2;
-  total = proxEndereco + extra;
+  // area global: variaveis do programa principal e, depois delas, os temporarios dele.
+  // parametros e locais NAO entram aqui: ficam no quadro de cada rotina
+  total = proxEndereco;
+  if (usaTmpVet == 1) total = total + 2;
+  if (usaTmpMod == 1) total = total + 2;
 
   // limites da mepa: 4096 instrucoes e 4096 posicoes de memoria
   if (nCod + 5 > 4096 || total > 4000) {
@@ -2090,27 +2196,40 @@ static void grava_mepa(void) {
   }
 
   //; codigo intermediario MEPA gerado pelo compilador (fase 2)
-  //; as linhas '; VAR nome endereco' sao lidas pelo leComandosMepa() do mepa.c
+  //; as linhas '; VAR nome desloc [nivel]' sao lidas pelo leComandosMepa() do mepa.c
   no = minitabela;
   while (no != NULL) {
-    // aqui vai a posicao da mepa, nao o endereco ordinal guardado na TNo
-    fprintf(arq, "; VAR %s %d\n", no->ID, posMepa);
-    // vetor ocupa varias casas na mepa, mas so um endereco ordinal na TNo
-    if (infoVar[iVar].ehVetor == 1) {
-      posMepa = posMepa + infoVar[iVar].hi - infoVar[iVar].lo + 1;
+    info = &infoVar[iVar];
+    if (info->rotina < 0) {
+      // aqui vai a posicao da mepa, nao o endereco ordinal guardado na TNo
+      fprintf(arq, "; VAR %s %d\n", no->ID, posMepa);
+      // vetor ocupa varias casas na mepa, mas so um endereco ordinal na TNo
+      if (info->ehVetor == 1) posMepa = posMepa + info->hi - info->lo + 1;
+      else posMepa++;
+    } else if (info->ehParam == 1) {
+      desloc = info->idxParam - (rotinas[info->rotina].nParam + 3);
+      fprintf(arq, "; VAR %s %d 1\n", no->ID, desloc);
     } else {
-      posMepa++;
+      desloc = info->offLocal;
+      if (rotinas[info->rotina].usaTmp == 1) desloc = desloc + 4; // temporarios vem primeiro no quadro
+      fprintf(arq, "; VAR %s %d 1\n", no->ID, desloc);
     }
     iVar++;
     no = no->prox;
   }
-  base = proxEndereco;
   for (i = 0; i < nRotinas; i++) {
     if (rotinas[i].ehFuncao == 1) {
-      fprintf(arq, "; VAR $ret_%s %d\n", rotinas[i].nome, base);
-      base++;
+      fprintf(arq, "; VAR $ret_%s %d 1\n", rotinas[i].nome, -(rotinas[i].nParam + 4));
     }
+    if (rotinas[i].usaTmp == 1) algumaTmpRotina = 1;
   }
+  if (algumaTmpRotina == 1) {
+    fprintf(arq, "; VAR $rv1 0 1\n");
+    fprintf(arq, "; VAR $rv2 1 1\n");
+    fprintf(arq, "; VAR $rma 2 1\n");
+    fprintf(arq, "; VAR $rmb 3 1\n");
+  }
+  base = proxEndereco;
   if (usaTmpVet == 1) {
     fprintf(arq, "; VAR $tv1 %d\n", base);
     fprintf(arq, "; VAR $tv2 %d\n", base + 1);

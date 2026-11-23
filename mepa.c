@@ -6,22 +6,19 @@ URLs - MEPA
 https://www.inf.ufpr.br/bmuller/assets/ci1211/Recursos/InterprMEPA-2.0.tar.bz2
  
 Base: InterprMEPA-2.0, de Bruno Muller Junior (Set/2020), Licenca GNU GPL.
-Os modulos MV_mepa, interface_usuario e executaMepa foram reunidos aqui
-SEM alteracao de comportamento. Falta completar o leitor de arquivos
-MEPA em C (secao LEITOR), que substituira leMepa.l e leMepa.y
-para dispensar flex e bison.
+Os modulos MV_mepa, interface_usuario e executaMepa foram reunidos aqui.
+A secao LEITOR (em C) substitui leMepa.l e leMepa.y e dispensa flex e bison.
 
 Compilar: gcc -g -Og -Wall mepa.c -o mepa
 Executar: ./mepa -r -i mepa_cod.txt      (-r = nao interativo)
 
-Os TODOs abaixo indicam as partes que ainda faltam implementar.
-
-TODO[M-06]: o codigo da professora, reunido sem mudancas, gera estes avisos
-  com -Wall (nenhum e erro): variaveis nao usadas (k, i, linha, linha_out),
-  retorno de scanf ignorado, 'rtpr' fora do switch que so imprime o estado
-  interativo e 'cmd' possivelmente nao inicializada em executaMepa()
-  (em modo -r ela e lida no while sem ter sido atribuida; inicializar com
-  'proximo'). Corrigir somente o necessario para compilar sem avisos.
+Alteracoes em relacao ao codigo da professora:
+  - secao LEITOR: le o mepa_cod.txt (variaveis pelo NOME, linhas '; VAR ...').
+  - avisos do -Wall corrigidos (as 34 instrucoes nao mudaram):
+      variaveis nao usadas removidas (k, i, linha, linha_out);
+      retorno de scanf conferido (LEIT e le_comando);
+      'rtpr' incluida no switch que imprime a instrucao (RTPR m,n);
+      'cmd' inicializada com 'proximo' em executaMepa().
 ===================================================================== */
 
 #include <stdio.h>
@@ -254,7 +251,7 @@ typedef struct reloc{
 reloc tabReloc[1024];
 
 void  relocaDesvios_MV_mepa(){
-  int i, k, j, max_tab_reloc;
+  int i, j, max_tab_reloc;
 
   // ------------------------------------------------------------------------------
   // obtem os enderecos dos rotulos  (nao testa duplicados)
@@ -469,7 +466,7 @@ instrucao_mepa _executa_instr_MV_mepa( int* i, int* s,
   case leit:
     *s = *s + 1;
     printf("(entrada):");
-    scanf("%d", &M[*s]);
+    if (scanf("%d", &M[*s]) != 1) M[*s] = 0; // entrada invalida ou fim da entrada: le 0
     getchar(); // consome o \n
     *i = *i + 1;
     break;
@@ -628,13 +625,11 @@ params_linha_comando* le_params_linha_comando (int argc, char** argv) {
  *  Trata modo interativo: le comando do usuário
  * ------------------------------------------------------------------- */
 cmd_usr le_comando(){
-  char linha[20];
   char cmd;
-  int i=0;
 
   while (1) {
     printf("=> "); // prompt
-    scanf("%c", &cmd);
+    if (scanf("%c", &cmd) != 1) return sair; // fim da entrada: encerra em vez de repetir o prompt
     if (cmd == '\n')
       cmd = 's';
     else
@@ -786,7 +781,7 @@ void gera_linha_impr_Instr_MV_mepa (char* sout, int i, char *primeiro) {
     break;
     // ------------------------------------------------------------
     // caso 4: instrucao com dois parametros: dois inteiros
-  case crvl: case armz: case crvi: case armi: case cren: case enrt:
+  case crvl: case armz: case crvi: case armi: case cren: case enrt: case rtpr:
     sprintf (sout+strlen(sout),"%d, %d", mv_mepa_I[i].op1,
              mv_mepa_I[i].op2);
     break;
@@ -880,7 +875,6 @@ void imprime_estado_MV_mepa_interativo() {
   char linha_I[100];
   char linha_M[100];
   char linha_D[100];
-  char linha_out[100];
   char linha_impr[TAM_VET_IMPR];
 
   // Imprime todas as instruções na primeira coluna e, baseado na
@@ -950,14 +944,8 @@ void iniciaInterfaceUsuario() {
  * Laço de execucaoo de comandos MEPA. Ja entra executando o primeiro 
  * comando do arquivo, normalmente INPP.
  * ------------------------------------------------------------------- */
-/*
-TODO (MEPA): Revisar a execucao sem modificar as instrucoes.
-  1. Inicializar cmd antes do laco, inclusive no modo -r.
-  2. Manter o modo interativo e o modo nao interativo da professora.
-  3. Preservar os valores inteiros lidos por LEIT e impressos por IMPR.
-*/
 void executaMepa(params_linha_comando* plc) {
-  cmd_usr cmd;
+  cmd_usr cmd = proximo; // inicializada: no modo -r ela e lida no while sem passar pelo le_comando()
   instrucao_mepa instr_exec;
   
   do {
@@ -1012,12 +1000,14 @@ void executaMepa(params_linha_comando* plc) {
  *
  * EXTENSAO PARA O COMPILADOR (o enunciado da Fase 2 pede variaveis
  * referenciadas pelo NOME no TXT):
- *   - linhas "; VAR nome endereco" (geradas pelo compilador.c) declaram
- *     o endereco de cada nome na memoria da MEPA. Qualquer outra linha
- *     que comece com ';' e comentario e e ignorada.
+ *   - linhas "; VAR nome desloc [nivel]" (geradas pelo compilador.c)
+ *     declaram onde cada nome fica na MEPA. O nivel e opcional (padrao 0).
+ *     Nivel 0 = area global (desloc >= 0). Nivel 1 em diante = quadro de
+ *     ativacao de uma rotina (desloc pode ser negativo: parametros).
+ *     Qualquer outra linha que comece com ';' e comentario e e ignorada.
  *   - nas instrucoes CRVL, ARMZ, CRVI, ARMI e CREN o operando pode ser
- *     "m,n" (formato original) ou um NOME. Um nome vira "0,endereco"
- *     (nivel lexico 0, deslocamento = endereco declarado em "; VAR").
+ *     "m,n" (formato original) ou um NOME. Um nome vira "nivel,desloc"
+ *     conforme declarado em "; VAR".
  *
  * O leitor trabalha em duas passadas sobre o arquivo: a primeira so
  * coleta as linhas "; VAR"; a segunda monta as instrucoes e chama
@@ -1036,7 +1026,7 @@ typedef enum formato_instr {
   FMT_INT1,     /* um inteiro                                     */
   FMT_ROTULO,   /* um rotulo de desvio                            */
   FMT_INT2,     /* dois inteiros                                  */
-  FMT_VAR2,     /* "m,n" ou NOME de variavel (vira 0,endereco)    */
+  FMT_VAR2,     /* "m,n" ou NOME de variavel (vira nivel,desloc) */
   FMT_CHPR,     /* rotulo e um inteiro                            */
   FMT_DSVR      /* rotulo e dois inteiros                         */
 } formato_instr;
@@ -1047,7 +1037,7 @@ typedef struct entrada_mnemonico {
   formato_instr formato;
 } entrada_mnemonico;
 
-/* TODO[M-01]: as 34 instrucoes da MEPA */
+/* as 34 instrucoes da MEPA: mnemonico, enum e formato dos operandos */
 static const entrada_mnemonico tabMnemonicos[] = {
   {"INPP", inpp, FMT_NENHUM}, {"PARA", para, FMT_NENHUM},
   {"SOMA", soma, FMT_NENHUM}, {"SUBT", subt, FMT_NENHUM},
@@ -1071,16 +1061,17 @@ static const entrada_mnemonico tabMnemonicos[] = {
 static const int totalMnemonicos =
     (int) (sizeof(tabMnemonicos) / sizeof(tabMnemonicos[0]));
 
-/* nomes declarados pelas linhas "; VAR nome endereco" */
+/* nomes declarados pelas linhas "; VAR nome desloc [nivel]" */
 typedef struct entrada_var {
   char nome[LEITOR_TAM_NOME];
-  int endereco;
+  int nivel;      /* registrador de base: 0 = global, 1 = quadro da rotina */
+  int endereco;   /* deslocamento a partir de D[nivel]                     */
 } entrada_var;
 
 static entrada_var tabVarsLeitor[LEITOR_MAX_VARS];
 static int nVarsLeitor = 0;
 
-/* TODO[M-04]: linha invalida -> mensagem com o numero da linha e exit(-1) */
+/* linha invalida: mostra o numero da linha e o motivo e encerra com exit(-1) */
 static void erroLeitor(int linha, const char *motivo, const char *detalhe) {
   printf("Erro no arquivo MEPA, linha %d: %s", linha, motivo);
   if (detalhe != NULL && detalhe[0] != '\0') printf(" '%s'", detalhe);
@@ -1137,7 +1128,7 @@ static void leOperando(const char **p, char *buf, int linha) {
   if (n >= LEITOR_TAM_NOME) erroLeitor(linha, "operando grande demais", buf);
 }
 
-/* TODO[M-05]: rotulos de ate 9 caracteres, no formato [RL][0-9]+ */
+/* rotulos de ate 9 caracteres, no formato [RL][0-9]+ */
 static int rotuloValido(const char *s) {
   int i;
   int n = (int) strlen(s);
@@ -1181,21 +1172,21 @@ static void leRotuloOperando(const char **p, int linha, char *rotulo) {
   strcpy(rotulo, tok);
 }
 
-static int buscaVarLeitor(const char *nome) {
+static const entrada_var *buscaVarLeitor(const char *nome) {
   int i;
   for (i = 0; i < nVarsLeitor; i++) {
-    if (strcmp(tabVarsLeitor[i].nome, nome) == 0) return tabVarsLeitor[i].endereco;
+    if (strcmp(tabVarsLeitor[i].nome, nome) == 0) return &tabVarsLeitor[i];
   }
-  return -1;
+  return NULL;
 }
 
-/* PASSADA 1: registra a linha "; VAR nome endereco" (se for uma) */
+/* PASSADA 1: registra a linha "; VAR nome desloc [nivel]" (se for uma) */
 static void registraVariavel(const char *linhaTxt, int nLinha) {
   const char *p = linhaTxt;
   char palavra[LEITOR_TAM_NOME];
   char nome[LEITOR_TAM_NOME];
   char num[LEITOR_TAM_NOME];
-  int n, endereco;
+  int n, endereco, nivel;
 
   pulaBrancos(&p);
   if (*p != ';') return;
@@ -1208,16 +1199,25 @@ static void registraVariavel(const char *linhaTxt, int nLinha) {
   if (n == 0) erroLeitor(nLinha, "VAR sem nome de variavel", "");
   if (n >= LEITOR_TAM_NOME) erroLeitor(nLinha, "nome de variavel grande demais", nome);
   n = leToken(&p, num, LEITOR_TAM_NOME);
-  if (n == 0 || n >= LEITOR_TAM_NOME || !numeroValido(num) || num[0] == '-') {
-    erroLeitor(nLinha, "VAR sem endereco valido para", nome);
+  if (n == 0 || n >= LEITOR_TAM_NOME || !numeroValido(num)) {
+    erroLeitor(nLinha, "VAR sem deslocamento valido para", nome);
   }
   endereco = converteInteiro(num, nLinha);
-  if (endereco >= TAM_M) erroLeitor(nLinha, "endereco de variavel fora da memoria da MEPA", nome);
-  if (buscaVarLeitor(nome) >= 0) erroLeitor(nLinha, "variavel declarada mais de uma vez", nome);
+  n = leToken(&p, num, LEITOR_TAM_NOME);          /* nivel (opcional) */
+  nivel = 0;
+  if (n > 0) {
+    if (n >= LEITOR_TAM_NOME || !numeroValido(num) || num[0] == '-') erroLeitor(nLinha, "VAR com nivel invalido para", nome);
+    nivel = converteInteiro(num, nLinha);
+    if (nivel >= TAM_RB) erroLeitor(nLinha, "nivel de variavel fora dos registradores de base", nome);
+  }
+  if (nivel == 0 && endereco < 0) erroLeitor(nLinha, "endereco global nao pode ser negativo", nome);
+  if (endereco >= TAM_M || endereco <= -TAM_M) erroLeitor(nLinha, "endereco de variavel fora da memoria da MEPA", nome);
+  if (buscaVarLeitor(nome) != NULL) erroLeitor(nLinha, "variavel declarada mais de uma vez", nome);
   if (nVarsLeitor >= LEITOR_MAX_VARS) erroLeitor(nLinha, "variaveis demais no arquivo MEPA", nome);
 
   strcpy(tabVarsLeitor[nVarsLeitor].nome, nome);
   tabVarsLeitor[nVarsLeitor].endereco = endereco;
+  tabVarsLeitor[nVarsLeitor].nivel = nivel;
   nVarsLeitor++;
 }
 
@@ -1230,7 +1230,8 @@ static void processaLinha(const char *linhaTxt, int nLinha) {
   char mnem[LEITOR_TAM_NOME];
   char tok[LEITOR_TAM_NOME];
   const entrada_mnemonico *e = NULL;
-  int n, i, endereco;
+  int n, i;
+  const entrada_var *var;
   int op1 = 0, op2 = 0, op3 = 0;
 
   rotulo[0] = '\0';
@@ -1284,11 +1285,11 @@ static void processaLinha(const char *linhaTxt, int nLinha) {
       if (numeroValido(tok)) {            /* formato original: m,n */
         op1 = converteInteiro(tok, nLinha);
         op2 = leInteiro(&p, nLinha);
-      } else {                            /* nome -> nivel 0, endereco */
-        endereco = buscaVarLeitor(tok);
-        if (endereco < 0) erroLeitor(nLinha, "variavel sem linha '; VAR nome endereco'", tok);
-        op1 = 0;
-        op2 = endereco;
+      } else {                            /* nome -> nivel, deslocamento */
+        var = buscaVarLeitor(tok);
+        if (var == NULL) erroLeitor(nLinha, "variavel sem linha '; VAR nome desloc [nivel]'", tok);
+        op1 = var->nivel;
+        op2 = var->endereco;
       }
       break;
     case FMT_CHPR:
@@ -1303,7 +1304,7 @@ static void processaLinha(const char *linhaTxt, int nLinha) {
   }
   if (!fimDeLinha(p)) erroLeitor(nLinha, "operandos em excesso na instrucao", mnem);
 
-  /* TODO[M-05]: respeitar TAM_I (4096) instrucoes */
+  /* respeita o limite de TAM_I (4096) instrucoes */
   if (mv_mepa_tam_i >= TAM_I) erroLeitor(nLinha, "programa passa do limite de 4096 instrucoes", "");
   if (rotulo[0] != '\0') {
     for (i = 0; i < mv_mepa_tam_i; i++) {
@@ -1376,12 +1377,6 @@ static void leComandosMepa(params_linha_comando *plc) {
 /* -------------------------------------------------------------------
  *  Programa Principal (igual ao de leMepa.y)
  * ------------------------------------------------------------------- */
-/*
-TODO (MEPA): Testes finais.
-  1. Conferir os exemplos MEPA5, MEPA7.1 e MEPA7.2.
-  2. Testar desvios, leitura, vetores e chamadas de rotina.
-  3. Compilar com gcc -g -Og -Wall mepa.c -o mepa.
-*/
 int main (int argc, char** argv) {
   params_linha_comando *plc;
 
