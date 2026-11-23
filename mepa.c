@@ -1002,25 +1002,375 @@ void executaMepa(params_linha_comando* plc) {
  *  CHPR: op2 = n; DSVR: op2 e op3.)
  * ===================================================================== */
 
-/* TODO[M-01]: tabela mnemonico -> instrucao_mepa + formato (as 34 instrucoes).
- * TODO[M-02]: separar o arquivo em tokens (rotulo, ':', ',', numero, mnemonico).
- * TODO[M-03]: montar cada linha conforme a gramatica e chamar insereInstr_MV_mepa.
- * TODO[M-04]: linha invalida -> mensagem com o numero da linha e exit(-1).
- * TODO[M-05]: respeitar TAM_I (4096) instrucoes e rotulos de ate 9 caracteres. */
+/* ---------------------------------------------------------------------
+ * LEITOR - formato aceito (um comando por linha):
+ *
+ *     [ROTULO ':'] COMANDO [P1 [','] [P2 [','] [P3]]]
+ *
+ *   ROTULO = [RL][0-9]+ (no maximo 9 caracteres: o campo tem 10 bytes)
+ *   NUMERO = [-+]?[0-9]+  (a virgula entre parametros e opcional)
+ *
+ * EXTENSAO PARA O COMPILADOR (o enunciado da Fase 2 pede variaveis
+ * referenciadas pelo NOME no TXT):
+ *   - linhas "; VAR nome endereco" (geradas pelo compilador.c) declaram
+ *     o endereco de cada nome na memoria da MEPA. Qualquer outra linha
+ *     que comece com ';' e comentario e e ignorada.
+ *   - nas instrucoes CRVL, ARMZ, CRVI, ARMI e CREN o operando pode ser
+ *     "m,n" (formato original) ou um NOME. Um nome vira "0,endereco"
+ *     (nivel lexico 0, deslocamento = endereco declarado em "; VAR").
+ *
+ * O leitor trabalha em duas passadas sobre o arquivo: a primeira so
+ * coleta as linhas "; VAR"; a segunda monta as instrucoes e chama
+ * insereInstr_MV_mepa(), na ordem em que aparecem. As 34 instrucoes da
+ * maquina nao foram alteradas.
+ * --------------------------------------------------------------------- */
 
-/*
-TODO (MEPA): leComandosMepa().
-  1. Ler o arquivo indicado por plc->fp_in, uma linha de cada vez.
-  2. Aceitar um rotulo antes da instrucao, como L1: NADA.
-  3. Identificar a instrucao com comparacoes simples de texto (strcmp).
-  4. Ler seus parametros inteiros ou rotulos, com virgula opcional.
-  5. Inserir a instrucao com insereInstr_MV_mepa(), na ordem lida.
-  6. Informar a linha de qualquer instrucao ou parametro invalido.
-  7. Respeitar 4096 instrucoes e o limite dos campos de rotulo.
-  8. Nao adicionar instrucoes novas nem alterar as 34 existentes.
-*/
+#define LEITOR_MAX_LINHA  256    /* tamanho maximo de uma linha do TXT    */
+#define LEITOR_MAX_VARS   1100   /* variaveis + $ret_ + temporarios       */
+#define LEITOR_TAM_NOME   80     /* nome/token (inclui o '\0')            */
+#define LEITOR_TAM_ROT    10     /* igual ao campo rotulo[10] da instrucao */
+
+/* quantos e quais operandos cada instrucao recebe */
+typedef enum formato_instr {
+  FMT_NENHUM,   /* sem operandos                                  */
+  FMT_INT1,     /* um inteiro                                     */
+  FMT_ROTULO,   /* um rotulo de desvio                            */
+  FMT_INT2,     /* dois inteiros                                  */
+  FMT_VAR2,     /* "m,n" ou NOME de variavel (vira 0,endereco)    */
+  FMT_CHPR,     /* rotulo e um inteiro                            */
+  FMT_DSVR      /* rotulo e dois inteiros                         */
+} formato_instr;
+
+typedef struct entrada_mnemonico {
+  const char *nome;
+  instrucao_mepa instr;
+  formato_instr formato;
+} entrada_mnemonico;
+
+/* TODO[M-01]: as 34 instrucoes da MEPA */
+static const entrada_mnemonico tabMnemonicos[] = {
+  {"INPP", inpp, FMT_NENHUM}, {"PARA", para, FMT_NENHUM},
+  {"SOMA", soma, FMT_NENHUM}, {"SUBT", subt, FMT_NENHUM},
+  {"MULT", mult, FMT_NENHUM}, {"DIVI", divi, FMT_NENHUM},
+  {"INVR", invr, FMT_NENHUM}, {"CONJ", conj, FMT_NENHUM},
+  {"DISJ", disj, FMT_NENHUM}, {"NEGA", nega, FMT_NENHUM},
+  {"CMME", cmme, FMT_NENHUM}, {"CMMA", cmma, FMT_NENHUM},
+  {"CMIG", cmig, FMT_NENHUM}, {"CMDG", cmdg, FMT_NENHUM},
+  {"CMEG", cmeg, FMT_NENHUM}, {"CMAG", cmag, FMT_NENHUM},
+  {"NADA", nada, FMT_NENHUM}, {"LEIT", leit, FMT_NENHUM},
+  {"IMPR", impr, FMT_NENHUM},
+  {"CRCT", crct, FMT_INT1},   {"AMEM", amem, FMT_INT1},
+  {"DMEM", dmem, FMT_INT1},   {"ENPR", enpr, FMT_INT1},
+  {"DSVS", dsvs, FMT_ROTULO}, {"DSVF", dsvf, FMT_ROTULO},
+  {"CRVL", crvl, FMT_VAR2},   {"ARMZ", armz, FMT_VAR2},
+  {"CRVI", crvi, FMT_VAR2},   {"ARMI", armi, FMT_VAR2},
+  {"CREN", cren, FMT_VAR2},
+  {"ENRT", enrt, FMT_INT2},   {"RTPR", rtpr, FMT_INT2},
+  {"CHPR", chpr, FMT_CHPR},   {"DSVR", dsvr, FMT_DSVR}
+};
+static const int totalMnemonicos =
+    (int) (sizeof(tabMnemonicos) / sizeof(tabMnemonicos[0]));
+
+/* nomes declarados pelas linhas "; VAR nome endereco" */
+typedef struct entrada_var {
+  char nome[LEITOR_TAM_NOME];
+  int endereco;
+} entrada_var;
+
+static entrada_var tabVarsLeitor[LEITOR_MAX_VARS];
+static int nVarsLeitor = 0;
+
+/* TODO[M-04]: linha invalida -> mensagem com o numero da linha e exit(-1) */
+static void erroLeitor(int linha, const char *motivo, const char *detalhe) {
+  printf("Erro no arquivo MEPA, linha %d: %s", linha, motivo);
+  if (detalhe != NULL && detalhe[0] != '\0') printf(" '%s'", detalhe);
+  printf("\n");
+  exit(-1);
+}
+
+static void pulaBrancos(const char **p) {
+  while (**p == ' ' || **p == '\t') (*p)++;
+}
+
+static void pulaSeparadores(const char **p) {
+  while (**p == ' ' || **p == '\t' || **p == ',') (*p)++;
+}
+
+/* 1 se na linha so resta espaco, quebra de linha ou comentario */
+static int fimDeLinha(const char *p) {
+  while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
+  return (*p == '\0' || *p == ';');
+}
+
+/* le letras, digitos e '_' (usado para rotulo e mnemonico). devolve o
+   tamanho lido; se passar de tam-1 o chamador trata como erro */
+static int leIdentificador(const char **p, char *buf, int tam) {
+  int n = 0;
+  while (isalnum((unsigned char) **p) || **p == '_') {
+    if (n < tam - 1) buf[n] = **p;
+    n++;
+    (*p)++;
+  }
+  buf[n < tam - 1 ? n : tam - 1] = '\0';
+  return n;
+}
+
+/* le um operando (ate branco, virgula, ';' ou fim de linha). devolve o
+   tamanho; o texto e truncado em tam-1 */
+static int leToken(const char **p, char *buf, int tam) {
+  int n = 0;
+  pulaSeparadores(p);
+  while (**p != '\0' && **p != ' ' && **p != '\t' && **p != ',' &&
+         **p != ';' && **p != '\r' && **p != '\n') {
+    if (n < tam - 1) buf[n] = **p;
+    n++;
+    (*p)++;
+  }
+  buf[n < tam - 1 ? n : tam - 1] = '\0';
+  return n;
+}
+
+/* leToken com os erros comuns: operando ausente ou grande demais */
+static void leOperando(const char **p, char *buf, int linha) {
+  int n = leToken(p, buf, LEITOR_TAM_NOME);
+  if (n == 0) erroLeitor(linha, "operando ausente", "");
+  if (n >= LEITOR_TAM_NOME) erroLeitor(linha, "operando grande demais", buf);
+}
+
+/* TODO[M-05]: rotulos de ate 9 caracteres, no formato [RL][0-9]+ */
+static int rotuloValido(const char *s) {
+  int i;
+  int n = (int) strlen(s);
+  if (n < 2 || n > LEITOR_TAM_ROT - 1) return 0;
+  if (s[0] != 'L' && s[0] != 'R') return 0;
+  for (i = 1; i < n; i++) {
+    if (!isdigit((unsigned char) s[i])) return 0;
+  }
+  return 1;
+}
+
+static int numeroValido(const char *s) {
+  int i = 0;
+  if (s[0] == '+' || s[0] == '-') i = 1;
+  if (s[i] == '\0') return 0;
+  for (; s[i] != '\0'; i++) {
+    if (!isdigit((unsigned char) s[i])) return 0;
+  }
+  return 1;
+}
+
+static int converteInteiro(const char *tok, int linha) {
+  long long v;
+  if (strlen(tok) > 12) erroLeitor(linha, "numero grande demais", tok);
+  v = strtoll(tok, NULL, 10);
+  if (v > 2147483647LL || v < -2147483648LL) erroLeitor(linha, "numero grande demais", tok);
+  return (int) v;
+}
+
+static int leInteiro(const char **p, int linha) {
+  char tok[LEITOR_TAM_NOME];
+  leOperando(p, tok, linha);
+  if (!numeroValido(tok)) erroLeitor(linha, "esperava um numero inteiro, veio", tok);
+  return converteInteiro(tok, linha);
+}
+
+static void leRotuloOperando(const char **p, int linha, char *rotulo) {
+  char tok[LEITOR_TAM_NOME];
+  leOperando(p, tok, linha);
+  if (!rotuloValido(tok)) erroLeitor(linha, "rotulo invalido", tok);
+  strcpy(rotulo, tok);
+}
+
+static int buscaVarLeitor(const char *nome) {
+  int i;
+  for (i = 0; i < nVarsLeitor; i++) {
+    if (strcmp(tabVarsLeitor[i].nome, nome) == 0) return tabVarsLeitor[i].endereco;
+  }
+  return -1;
+}
+
+/* PASSADA 1: registra a linha "; VAR nome endereco" (se for uma) */
+static void registraVariavel(const char *linhaTxt, int nLinha) {
+  const char *p = linhaTxt;
+  char palavra[LEITOR_TAM_NOME];
+  char nome[LEITOR_TAM_NOME];
+  char num[LEITOR_TAM_NOME];
+  int n, endereco;
+
+  pulaBrancos(&p);
+  if (*p != ';') return;
+  p++;
+  pulaBrancos(&p);
+  leToken(&p, palavra, LEITOR_TAM_NOME);
+  if (strcmp(palavra, "VAR") != 0) return;   /* comentario comum */
+
+  n = leToken(&p, nome, LEITOR_TAM_NOME);
+  if (n == 0) erroLeitor(nLinha, "VAR sem nome de variavel", "");
+  if (n >= LEITOR_TAM_NOME) erroLeitor(nLinha, "nome de variavel grande demais", nome);
+  n = leToken(&p, num, LEITOR_TAM_NOME);
+  if (n == 0 || n >= LEITOR_TAM_NOME || !numeroValido(num) || num[0] == '-') {
+    erroLeitor(nLinha, "VAR sem endereco valido para", nome);
+  }
+  endereco = converteInteiro(num, nLinha);
+  if (endereco >= TAM_M) erroLeitor(nLinha, "endereco de variavel fora da memoria da MEPA", nome);
+  if (buscaVarLeitor(nome) >= 0) erroLeitor(nLinha, "variavel declarada mais de uma vez", nome);
+  if (nVarsLeitor >= LEITOR_MAX_VARS) erroLeitor(nLinha, "variaveis demais no arquivo MEPA", nome);
+
+  strcpy(tabVarsLeitor[nVarsLeitor].nome, nome);
+  tabVarsLeitor[nVarsLeitor].endereco = endereco;
+  nVarsLeitor++;
+}
+
+/* PASSADA 2: interpreta uma linha e insere a instrucao na maquina */
+static void processaLinha(const char *linhaTxt, int nLinha) {
+  const char *p = linhaTxt;
+  const char *q;
+  char rotulo[LEITOR_TAM_ROT];
+  char rotDesvio[LEITOR_TAM_ROT];
+  char mnem[LEITOR_TAM_NOME];
+  char tok[LEITOR_TAM_NOME];
+  const entrada_mnemonico *e = NULL;
+  int n, i, endereco;
+  int op1 = 0, op2 = 0, op3 = 0;
+
+  rotulo[0] = '\0';
+  rotDesvio[0] = '\0';
+
+  pulaBrancos(&p);
+  if (*p == '\0' || *p == '\n' || *p == '\r' || *p == ';') return;  /* vazia/comentario */
+
+  /* primeira palavra: e rotulo se vier seguida de ':', senao e o mnemonico */
+  n = leIdentificador(&p, tok, LEITOR_TAM_NOME);
+  if (n == 0) erroLeitor(nLinha, "esperava rotulo ou instrucao", "");
+  if (n >= LEITOR_TAM_NOME) erroLeitor(nLinha, "palavra grande demais", tok);
+  q = p;
+  pulaBrancos(&q);
+  if (*q == ':') {
+    if (!rotuloValido(tok)) erroLeitor(nLinha, "rotulo invalido", tok);
+    strcpy(rotulo, tok);
+    p = q + 1;
+    pulaBrancos(&p);
+    n = leIdentificador(&p, mnem, LEITOR_TAM_NOME);
+    if (n == 0) erroLeitor(nLinha, "falta a instrucao depois do rotulo", rotulo);
+    if (n >= LEITOR_TAM_NOME) erroLeitor(nLinha, "palavra grande demais", mnem);
+  } else {
+    strcpy(mnem, tok);
+  }
+
+  for (i = 0; mnem[i] != '\0'; i++) mnem[i] = (char) toupper((unsigned char) mnem[i]);
+  for (i = 0; i < totalMnemonicos; i++) {
+    if (strcmp(tabMnemonicos[i].nome, mnem) == 0) {
+      e = &tabMnemonicos[i];
+      break;
+    }
+  }
+  if (e == NULL) erroLeitor(nLinha, "instrucao desconhecida", mnem);
+
+  switch (e->formato) {
+    case FMT_NENHUM:
+      break;
+    case FMT_INT1:
+      op1 = leInteiro(&p, nLinha);
+      break;
+    case FMT_ROTULO:
+      leRotuloOperando(&p, nLinha, rotDesvio);
+      break;
+    case FMT_INT2:
+      op1 = leInteiro(&p, nLinha);
+      op2 = leInteiro(&p, nLinha);
+      break;
+    case FMT_VAR2:
+      leOperando(&p, tok, nLinha);
+      if (numeroValido(tok)) {            /* formato original: m,n */
+        op1 = converteInteiro(tok, nLinha);
+        op2 = leInteiro(&p, nLinha);
+      } else {                            /* nome -> nivel 0, endereco */
+        endereco = buscaVarLeitor(tok);
+        if (endereco < 0) erroLeitor(nLinha, "variavel sem linha '; VAR nome endereco'", tok);
+        op1 = 0;
+        op2 = endereco;
+      }
+      break;
+    case FMT_CHPR:
+      leRotuloOperando(&p, nLinha, rotDesvio);
+      op2 = leInteiro(&p, nLinha);
+      break;
+    case FMT_DSVR:
+      leRotuloOperando(&p, nLinha, rotDesvio);
+      op2 = leInteiro(&p, nLinha);
+      op3 = leInteiro(&p, nLinha);
+      break;
+  }
+  if (!fimDeLinha(p)) erroLeitor(nLinha, "operandos em excesso na instrucao", mnem);
+
+  /* TODO[M-05]: respeitar TAM_I (4096) instrucoes */
+  if (mv_mepa_tam_i >= TAM_I) erroLeitor(nLinha, "programa passa do limite de 4096 instrucoes", "");
+  if (rotulo[0] != '\0') {
+    for (i = 0; i < mv_mepa_tam_i; i++) {
+      if (strcmp(mv_mepa_I[i].rotulo, rotulo) == 0) erroLeitor(nLinha, "rotulo definido mais de uma vez", rotulo);
+    }
+  }
+  insereInstr_MV_mepa(rotulo, e->instr, op1, op2, op3, 0, rotDesvio);
+}
+
+/* todo desvio precisa apontar para um rotulo existente (a relocacao da
+   professora nao testa isso e um destino ausente derrubaria a execucao) */
+static void verificaDesvios(void) {
+  int i, j, achou;
+  for (i = 0; i < mv_mepa_tam_i; i++) {
+    if (mv_mepa_I[i].rotDdesvio[0] == '\0') continue;
+    achou = 0;
+    for (j = 0; j < mv_mepa_tam_i; j++) {
+      if (strcmp(mv_mepa_I[j].rotulo, mv_mepa_I[i].rotDdesvio) == 0) {
+        achou = 1;
+        break;
+      }
+    }
+    if (!achou) {
+      printf("Erro no arquivo MEPA: rotulo '%s' usado na instrucao %d nao foi definido\n",
+             mv_mepa_I[i].rotDdesvio, i + 1);
+      exit(-1);
+    }
+  }
+}
+
+/* le uma linha inteira do arquivo; devolve 0 no fim do arquivo */
+static int leLinhaArquivo(FILE *fp, char *linhaTxt, int nLinha) {
+  size_t tam;
+  if (fgets(linhaTxt, LEITOR_MAX_LINHA, fp) == NULL) return 0;
+  tam = strlen(linhaTxt);
+  if (tam == (size_t) (LEITOR_MAX_LINHA - 1) && linhaTxt[tam - 1] != '\n') {
+    erroLeitor(nLinha, "linha grande demais", "");
+  }
+  return 1;
+}
+
+/* le o arquivo plc->fp_in e carrega as instrucoes na maquina virtual */
 static void leComandosMepa(params_linha_comando *plc) {
-    (void)plc;
+  char linhaTxt[LEITOR_MAX_LINHA];
+  int nLinha;
+
+  /* passada 1: so as linhas "; VAR nome endereco" */
+  nLinha = 0;
+  while (leLinhaArquivo(plc->fp_in, linhaTxt, nLinha + 1)) {
+    nLinha++;
+    registraVariavel(linhaTxt, nLinha);
+  }
+
+  /* passada 2: as instrucoes, na ordem do arquivo */
+  rewind(plc->fp_in);
+  nLinha = 0;
+  while (leLinhaArquivo(plc->fp_in, linhaTxt, nLinha + 1)) {
+    nLinha++;
+    processaLinha(linhaTxt, nLinha);
+  }
+  fclose(plc->fp_in);
+
+  if (mv_mepa_tam_i == 0) {
+    printf("Erro no arquivo MEPA: nenhuma instrucao encontrada em %s\n", plc->arq_in);
+    exit(-1);
+  }
+  verificaDesvios();
 }
 
 /* -------------------------------------------------------------------
