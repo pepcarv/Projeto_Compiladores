@@ -1,0 +1,7 @@
+algoritmo "ComparaTextosENumeros"
+var
+  senhaDigitada: inteiro
+inicio
+  senhaDigitada <- 1234
+  escreval(senhaDigitada = 1234, senhaDigitada <> 1234)
+fimalgoritmo

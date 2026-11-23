@@ -1,0 +1,8 @@
+algoritmo "FuncaoZero"
+funcao sete(): inteiro
+  inicio
+    retorne 7
+fimfuncao
+inicio
+  escreval(sete())
+fimalgoritmo

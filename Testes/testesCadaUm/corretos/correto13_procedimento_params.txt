@@ -1,0 +1,8 @@
+algoritmo "ProcedimentoParams"
+procedimento mostrar(x: inteiro)
+  inicio
+    escreval(x)
+fimprocedimento
+inicio
+  mostrar(12)
+fimalgoritmo

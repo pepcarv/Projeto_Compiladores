@@ -1,0 +1,10 @@
+algoritmo "VerificaChuva"
+var
+  chovendo: logico
+inicio
+  chovendo <- verdadeiro
+  se (chovendo = verdadeiro) entao
+    escreval(1)
+  fimse
+  escreval(2)
+fimalgoritmo

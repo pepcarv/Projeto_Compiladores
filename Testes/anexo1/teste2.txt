@@ -1,0 +1,8 @@
+algoritmo "MensagemDupla"
+var
+inicio
+  // comentario do exemplo
+  escreva("Bem-vindo ao ")
+  escreval("VisuAlg 3.0!")
+  escreval("Vamos começar a programar.")
+fimalgoritmo

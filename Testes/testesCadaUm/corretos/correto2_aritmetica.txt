@@ -1,0 +1,10 @@
+algoritmo "Aritmetica"
+var
+  a, b, c: inteiro
+inicio
+  a <- 10
+  b <- 18
+  c <- 2
+  a <- a + (b \ 9 - 3) * c
+  escreval(a)
+fimalgoritmo

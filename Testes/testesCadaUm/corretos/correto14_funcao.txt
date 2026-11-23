@@ -1,0 +1,11 @@
+algoritmo "Funcao"
+funcao somar(a: inteiro, b: inteiro): inteiro
+  inicio
+    retorne a + b
+fimfuncao
+var
+  resultado: inteiro
+inicio
+  resultado <- somar(10, 5)
+  escreval(resultado)
+fimalgoritmo

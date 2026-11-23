@@ -1,0 +1,10 @@
+algoritmo "ProcedimentosSemParametros"
+procedimento linha_decorativa
+  inicio
+    escreval(99)
+fimprocedimento
+inicio
+  linha_decorativa
+  escreval(1)
+  linha_decorativa
+fimalgoritmo

@@ -1,0 +1,7 @@
+algoritmo "DivisaoRealSemMepa"
+var
+  valor: real
+inicio
+  valor <- 7 / 2
+  escreval(valor)
+fimalgoritmo

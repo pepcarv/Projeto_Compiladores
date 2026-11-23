@@ -1,0 +1,8 @@
+algoritmo "ParaNegativo"
+var
+  i: inteiro
+inicio
+  para i de 6 ate 0 passo -2 faca
+    escreval(i)
+  fimpara
+fimalgoritmo

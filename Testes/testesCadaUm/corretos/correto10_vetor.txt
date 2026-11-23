@@ -1,0 +1,10 @@
+algoritmo "Vetor"
+var
+  v: vetor[1..3] de inteiro
+  i: inteiro
+inicio
+  i <- 2
+  v[1] <- 11
+  v[i] <- 22
+  escreval(v[1], v[i])
+fimalgoritmo

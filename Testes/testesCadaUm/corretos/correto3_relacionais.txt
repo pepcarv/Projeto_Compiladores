@@ -1,0 +1,8 @@
+algoritmo "Relacionais"
+var
+  a, b: inteiro
+inicio
+  a <- 5
+  b <- 3
+  escreval(a > b, a >= b, a < b, a <= b, a = b, a <> b)
+fimalgoritmo

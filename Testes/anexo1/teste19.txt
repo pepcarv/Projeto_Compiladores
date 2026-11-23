@@ -1,0 +1,9 @@
+algoritmo "ProcedimentosComParametros"
+procedimento mostrar_erro(mensagem: caractere)
+  inicio
+    escreval("[ERRO DO SISTEMA]: ", mensagem)
+fimprocedimento
+inicio
+  mostrar_erro("A conexão com a internet caiu.")
+  mostrar_erro("O disco rígido está cheio.")
+fimalgoritmo

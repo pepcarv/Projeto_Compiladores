@@ -1,0 +1,9 @@
+algoritmo "Procedimento"
+procedimento linha
+  inicio
+    escreval(7)
+fimprocedimento
+inicio
+  linha
+  linha
+fimalgoritmo

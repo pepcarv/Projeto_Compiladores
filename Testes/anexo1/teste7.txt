@@ -1,0 +1,9 @@
+algoritmo "TesteDeLogica"
+var
+  idade: inteiro
+  ehMaiorDeIdade: logico
+inicio
+  leia(idade)
+  ehMaiorDeIdade <- idade >= 18
+  escreval(ehMaiorDeIdade)
+fimalgoritmo

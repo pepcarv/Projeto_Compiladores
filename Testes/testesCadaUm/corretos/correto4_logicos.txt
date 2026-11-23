@@ -1,0 +1,8 @@
+algoritmo "Logicos"
+var
+  p, q: logico
+inicio
+  p <- verdadeiro
+  q <- falso
+  escreval(p E q, p OU q, nao q)
+fimalgoritmo

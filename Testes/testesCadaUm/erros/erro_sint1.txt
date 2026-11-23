@@ -1,0 +1,8 @@
+algoritmo "Sintatico1"
+procedimento rotina()
+  inicio
+    escreval(7)
+fimprocedimento
+inicio
+  rotina
+fimalgoritmo

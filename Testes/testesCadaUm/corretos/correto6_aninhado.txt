@@ -1,0 +1,15 @@
+algoritmo "Aninhado"
+var
+  x: inteiro
+inicio
+  x <- 15
+  se (x >= 18) entao
+    escreval(3)
+  senao
+    se (x >= 12) entao
+      escreval(2)
+    senao
+      escreval(1)
+    fimse
+  fimse
+fimalgoritmo

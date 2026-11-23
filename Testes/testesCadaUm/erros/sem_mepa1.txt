@@ -1,0 +1,5 @@
+algoritmo "StringSemMepa"
+var
+inicio
+  escreval("Texto valido no MiniVisualg")
+fimalgoritmo

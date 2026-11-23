@@ -1,0 +1,7 @@
+algoritmo "Leitura"
+var
+  n: inteiro
+inicio
+  leia(n)
+  escreval(n + 2)
+fimalgoritmo

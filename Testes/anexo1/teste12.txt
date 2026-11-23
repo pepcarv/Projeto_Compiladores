@@ -1,0 +1,15 @@
+algoritmo "MaioridadeAninhado"
+var
+  idade: inteiro
+inicio
+  leia(idade)
+  se (idade >= 18) entao
+    escreval(2)
+  senao
+    se (idade >= 12) entao
+      escreval(1)
+    senao
+      escreval(0)
+    fimse
+  fimse
+fimalgoritmo

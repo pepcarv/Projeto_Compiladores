@@ -1,0 +1,5 @@
+algoritmo "Semantico2"
+var
+inicio
+  x <- 5
+fimalgoritmo

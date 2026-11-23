@@ -1,0 +1,9 @@
+algoritmo "LeituraVetor"
+var
+  v: vetor[1..2] de inteiro
+  i: inteiro
+inicio
+  i <- 2
+  leia(v[i])
+  escreval(v[2])
+fimalgoritmo

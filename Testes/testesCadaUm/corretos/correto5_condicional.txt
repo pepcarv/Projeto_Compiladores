@@ -1,0 +1,12 @@
+algoritmo "Condicional"
+var
+  a, b: inteiro
+inicio
+  a <- 8
+  b <- 2
+  se (a > b) entao
+    escreval(10)
+  senao
+    escreval(20)
+  fimse
+fimalgoritmo

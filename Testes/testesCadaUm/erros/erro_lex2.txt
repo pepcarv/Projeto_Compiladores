@@ -1,0 +1,7 @@
+algoritmo "Lexico2"
+var
+  numero: inteiro
+inicio
+  numero <- 7 # 3
+  escreval(numero)
+fimalgoritmo

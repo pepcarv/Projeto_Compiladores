@@ -1,0 +1,5 @@
+algoritmo "Lexico1"
+var
+inicio
+  escreval(3 @ 2)
+fimalgoritmo

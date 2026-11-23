@@ -1,0 +1,6 @@
+algoritmo "Semantico1"
+var
+  inicio: inteiro
+inicio
+  escreval(1)
+fimalgoritmo

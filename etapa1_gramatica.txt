@@ -43,7 +43,7 @@ PALAVRAS RESERVADAS (keywords)
   vetor, de, escreva, escreval, leia, se, entao, senao, fimse, para, ate,
   passo, faca, fimpara, enquanto, fimenquanto, procedimento,
   fimprocedimento, funcao, fimfuncao, retorne, verdadeiro, falso, E, OU,
-  mod, MOD
+  mod, MOD, nao
 
 DELIMITADORES / PONTUACAO
   (  )  [  ]  ,  :  ..
@@ -59,7 +59,7 @@ as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
 (preencher as producoes de cada um):
 
 <programa> ::=
-  "algoritmo" <string> "var" <declaracoes> <subrotinas>
+  "algoritmo" STRING <subrotinas> [ "var" <declaracoes> ] <subrotinas>
   "inicio" <bloco_comandos> "fimalgoritmo"
 
 <declaracoes> ::=
@@ -75,16 +75,17 @@ as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
 <subrotinas> ::= { <declaracao_procedimento> | <declaracao_funcao> }
 
 <declaracao_procedimento> ::=
-  "procedimento" ID [ "(" <lista_parametros> ")" ] [ "var" <declaracoes> ]
+  "procedimento" ID [ "(" <lista_parametros_obrigatorios> ")" ] [ "var" <declaracoes> ]
   "inicio" <bloco_comandos> "fimprocedimento"
-  (procedimento sem parametros NAO usa parenteses, nem na declaracao nem
-  na chamada)
+  (procedimentos sem parametros devem ser declarados sem parenteses)
 
 <declaracao_funcao> ::=
   "funcao" ID "(" <lista_parametros> ")" ":" <tipo> [ "var" <declaracoes> ]
   "inicio" <bloco_comandos> "fimfuncao"
 
 <lista_parametros> ::= [ ID ":" <tipo> { "," ID ":" <tipo> } ]
+
+<lista_parametros_obrigatorios> ::= ID ":" <tipo> { "," ID ":" <tipo> }
 
 <bloco_comandos> ::= { <comando> }
 
@@ -115,8 +116,10 @@ as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
   [ "senao" <bloco_comandos> ] "fimse"
 
 <repeticao_para> ::=
-  "para" ID "de" <expressao> "ate" <expressao> [ "passo" <expressao> ]
+  "para" ID "de" <expressao> "ate" <expressao> [ "passo" <passo_inteiro> ]
   "faca" <bloco_comandos> "fimpara"
+
+<passo_inteiro> ::= [ "+" | "-" ] NUM_INT
 
 <repeticao_enquanto> ::=
   "enquanto" "(" <expressao> ")" "faca" <bloco_comandos> "fimenquanto"
@@ -127,10 +130,12 @@ as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
 
 <expressao> ::= <expr_logica>
 
-<expr_logica> ::= <expr_relacional> { ( "E" | "OU" ) <expr_relacional> }
+<expr_logica> ::= <expr_e> { "OU" <expr_e> }
+
+<expr_e> ::= <expr_relacional> { "E" <expr_relacional> }
 
 <expr_relacional> ::=
-  <expr_aritmetica> { <op_relacional> <expr_aritmetica> }
+  <expr_aritmetica> [ <op_relacional> <expr_aritmetica> ]
 
 <op_relacional> ::= "=" | "<>" | "<" | "<=" | ">" | ">="
 
@@ -142,4 +147,4 @@ as estruturas exemplificadas no Anexo I. Sugestao de nao-terminais a definir
   NUM_INT | NUM_FLOAT | STRING | "verdadeiro" | "falso"
   | ID [ "[" <expressao> "]" | "(" <lista_argumentos> ")" ]
   | "(" <expressao> ")"
-  | "-" <fator>
+  | "+" <fator> | "-" <fator> | "nao" <fator>

@@ -11,8 +11,7 @@ Compilacao:
   gcc -g -Og -Wall compilador.c -o compilador
 
 Execucao:
-  ./compilador ./testes/*.txt
-
+  ./compilador <arquivo_fonte>
 */
 
 #include <stdio.h>
@@ -626,6 +625,8 @@ static void chama_rotina(int idRot, int linha) {
   int i;
   char buf[96];
   if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "(") == 0) {
+    // fix do procedimento sem params (correcao do anexo 1)
+    if (rotinas[idRot].ehFuncao == 0 && rotinas[idRot].nParam == 0) erroSintatico(lookahead.line, lookahead);
     consome(TOKEN_DELIM, "(");
     analisar_lista_argumentos(idRot); // daqui o fluxo vai pra analisar_lista_argumentos() e volta pra ca
     consome(TOKEN_DELIM, ")");
@@ -1241,6 +1242,23 @@ void analisar_declaracoes(void) {
     // agora que o tipo apareceu, insere cada nome na minitabela
     for (i = 0; i < n; i++) {
       insere_variavel(nomes[i], linhas[i], tipo, ehVetor, lo, hi, 0);
+    }
+  }
+
+  // correcao das palavras reservadas (tavam dando erro sint - devem dar erro sem)
+  if (lookahead.type == TOKEN_KEYWORD) {
+    long pos = bufPos;
+    while (pos < bufLen) {
+      if (isspace((unsigned char) buffer[pos])) {
+        pos++;
+      } else if (buffer[pos] == '/' && pos + 1 < bufLen && buffer[pos + 1] == '/') {
+        while (pos < bufLen && buffer[pos] != '\n') pos++;
+      } else {
+        break;
+      }
+    }
+    if (pos < bufLen && buffer[pos] == ':') {
+      erroSemantico(lookahead.line, "palavra reservada nao pode ser nome de variavel", symtab[lookahead.attribute.table_index]);
     }
   }
 }
@@ -1917,6 +1935,8 @@ void analisar_declaracao_procedimento(void) {
   emite_num("ENPR", 1);
   if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], "(") == 0) {
     consome(TOKEN_DELIM, "(");
+    // fix do procedimento sem params (correcao do anexo 1)
+    if (lookahead.type == TOKEN_DELIM && strcmp(symtab[lookahead.attribute.table_index], ")") == 0) erroSintatico(lookahead.line, lookahead);
     analisar_lista_parametros(); // daqui o fluxo vai pra analisar_lista_parametros() e volta
     consome(TOKEN_DELIM, ")");
   }
