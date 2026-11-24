@@ -232,6 +232,7 @@ typedef struct {
   char nome[64];
   int ehFuncao;
   int tipoRet;
+  int temRetorne;
   int nParam;
   int tipoParam[MAX_PARAMS];
   char nomeParam[MAX_PARAMS][16];
@@ -580,6 +581,7 @@ static int registra_rotina(const char *nome, int linha, int ehFuncao) {
   strcpy(rotinas[id].nome, nome);
   rotinas[id].ehFuncao = ehFuncao;
   rotinas[id].tipoRet = TIPO_NENHUM;
+  rotinas[id].temRetorne = 0;
   rotinas[id].nParam = 0;
   rotinas[id].tamLocais = 0;
   rotinas[id].usaTmp = 0;
@@ -1457,6 +1459,7 @@ void analisar_comando(void) {
       if (!tipo_atribuivel(rotinas[rotinaAtual].tipoRet, tipoExpr)) {
         erro_tipos(linha, "retorne", rotinas[rotinaAtual].tipoRet, tipoExpr);
       }
+      rotinas[rotinaAtual].temRetorne = 1;
       // guarda o valor no slot de retorno da funcao e pula pro RTPR (fim da rotina)
       emite_ret("ARMZ", rotinaAtual);
       emite_rot("DSVS", rotinas[rotinaAtual].rotuloFim);
@@ -2120,6 +2123,10 @@ void analisar_declaracao_funcao(void) {
   consome(TOKEN_KEYWORD, "inicio");
   analisar_bloco_comandos();
   consome(TOKEN_KEYWORD, "fimfuncao");
+  // correção do retorne (funções sem retorne)
+  if (rotinas[idRot].temRetorne == 0) {
+    erroSemantico(linha, "funcao sem retorne", nome);
+  }
   emite_saida_rotina(idRot, idxAmem); // o retorne ja guardou o valor em $ret_nome (quadro)
   rotinaAtual = -1;
 }

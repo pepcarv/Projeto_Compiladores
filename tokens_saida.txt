@@ -1,0 +1,23 @@
+1# algoritmo
+1# STRING | ParaNegativo
+2# var
+3# IDENTIFICADOR | 3
+3# DELIMITADOR | :
+3# inteiro
+4# inicio
+5# para
+5# IDENTIFICADOR | 3
+5# de
+5# NUM_INTEIRO | 6
+5# ate
+5# NUM_INTEIRO | 0
+5# passo
+5# OP_ARITMETICO | -
+5# NUM_INTEIRO | 2
+5# faca
+6# escreval
+6# DELIMITADOR | (
+6# IDENTIFICADOR | 3
+6# DELIMITADOR | )
+7# fimpara
+8# fimalgoritmo
