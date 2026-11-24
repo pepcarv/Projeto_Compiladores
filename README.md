@@ -31,7 +31,8 @@ gcc -Wall -Wno-unused-result -g -Og mepa.c -o mepa
 ./mepa -r -i mepa_cod.txt
 ```
 
-Também incluímos um `Makefile` para compilar e executar as baterias de testes:
+
+Também incluímos um `Makefile` para facilitar a compilação e a execução das baterias de testes:
 
 ```bash
 make help
@@ -40,6 +41,13 @@ make mepa
 make erros
 make clean
 ```
+
+- `make help`: lista os comandos disponíveis.
+- `make build`: compila o `compilador.c` e o `mepa.c`.
+- `make mepa`: executa os testes válidos do MEPA em /Testes/testesCadaUm/corretos/
+- `make erros`: executa os testes de erros léxicos, sintáticos e semânticos, além dos casos válidos que não geram MEPA em /Testes/testesCadaUm/errros/
+- `make clean`: remove os executáveis e arquivos gerados.
+
 RECOMENDAMOS USAR O MAKEFILE PELO CODESPACE, POIS NÃO TEM DEPENDÊNCIAS EXTRAS PRA FUNCIONAR.
 
 ## Analisador Léxico
